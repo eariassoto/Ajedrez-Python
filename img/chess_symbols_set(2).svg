@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   height="75.910744"
+   id="svg1"
+   inkscape:version="0.46"
+   sodipodi:docbase="/home/vector"
+   sodipodi:docname="chess_set_symbols_02_white_pawn.svg"
+   sodipodi:version="0.32"
+   width="55.383869"
+   inkscape:output_extension="org.inkscape.output.svg.inkscape"
+   version="1.0"
+   inkscape:export-filename="C:\joanna\Gfx\drawings_vector\admin\thumbs\Igor Krizanovskij\chess_set_symbols_igor_k_01_ok.png"
+   inkscape:export-xdpi="51.457458"
+   inkscape:export-ydpi="51.457458">
+  <metadata
+     id="metadata3">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:title>Chess Set Symbols</dc:title>
+        <dc:description />
+        <dc:subject>
+          <rdf:Bag>
+            <rdf:li />
+            <rdf:li>game</rdf:li>
+            <rdf:li>chess</rdf:li>
+            <rdf:li>symbols</rdf:li>
+            <rdf:li>board</rdf:li>
+            <rdf:li>recreation</rdf:li>
+            <rdf:li>fonts</rdf:li>
+          </rdf:Bag>
+        </dc:subject>
+        <dc:publisher>
+          <cc:Agent
+             rdf:about="http://www.openclipart.org">
+            <dc:title>Igor Krizanovskij</dc:title>
+          </cc:Agent>
+        </dc:publisher>
+        <dc:creator>
+          <cc:Agent>
+            <dc:title>Igor Krizanovskij</dc:title>
+          </cc:Agent>
+        </dc:creator>
+        <dc:rights>
+          <cc:Agent>
+            <dc:title>Igor Krizanovskij</dc:title>
+          </cc:Agent>
+        </dc:rights>
+        <dc:date />
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <cc:license
+           rdf:resource="http://web.resource.org/cc/PublicDomain" />
+        <dc:language>en</dc:language>
+      </cc:Work>
+      <cc:License
+         rdf:about="http://web.resource.org/cc/PublicDomain">
+        <cc:permits
+           rdf:resource="http://web.resource.org/cc/Reproduction" />
+        <cc:permits
+           rdf:resource="http://web.resource.org/cc/Distribution" />
+        <cc:permits
+           rdf:resource="http://web.resource.org/cc/DerivativeWorks" />
+      </cc:License>
+    </rdf:RDF>
+  </metadata>
+  <defs
+     id="defs3">
+    <inkscape:perspective
+       sodipodi:type="inkscape:persp3d"
+       inkscape:vp_x="0 : 187.5 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_z="1052.3622 : 187.5 : 1"
+       inkscape:persp3d-origin="526.18109 : 125 : 1"
+       id="perspective20" />
+  </defs>
+  <sodipodi:namedview
+     bordercolor="#666666"
+     borderopacity="1.0"
+     id="base"
+     inkscape:current-layer="layer1"
+     inkscape:cx="702.38575"
+     inkscape:cy="44.73312"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:window-height="778"
+     inkscape:window-width="1270"
+     inkscape:window-x="2"
+     inkscape:window-y="0"
+     inkscape:zoom="0.80058132"
+     pagecolor="#ffffff"
+     showgrid="false" />
+  <g
+     id="layer1"
+     inkscape:groupmode="layer"
+     inkscape:label="Layer 1"
+     transform="translate(-921.42487,-223.23889)">
+    <path
+       d="M 972.16114,293.98563 C 972.16104,284.94865 969.70814,278.19242 964.80244,273.71696 C 963.16708,272.16775 961.14451,270.70462 958.73476,269.32756 C 955.37806,267.34803 953.69976,265.54062 953.69986,263.90536 C 953.69976,263.04469 954.56041,262.09797 956.28185,261.06517 C 958.94981,259.60203 960.54204,257.88069 961.05856,255.90115 C 961.23058,255.12657 961.31665,254.17985 961.31675,253.06097 C 961.31665,249.10191 959.29409,246.00351 955.24905,243.76578 L 952.92526,242.08748 C 952.49481,241.65716 952.27965,241.18378 952.27976,240.66737 C 952.27965,239.20425 952.79604,237.74111 953.82895,236.27798 C 954.51738,235.33126 954.86165,234.21238 954.86175,232.92138 C 954.86165,230.68367 953.65672,229.0484 951.24696,228.01559 C 950.47225,227.75738 949.69766,227.62829 948.92316,227.62829 C 946.51318,227.62829 944.79186,228.70413 943.75916,230.85578 C 943.4148,231.54432 943.24265,232.23286 943.24275,232.92138 C 943.24265,233.69599 943.8021,235.15911 944.92106,237.31079 C 945.60949,238.51571 945.91072,239.63459 945.82478,240.66737 C 945.82464,241.70017 944.83488,242.73297 942.85547,243.76578 C 938.89629,246.08957 936.91675,249.18798 936.91688,253.06097 C 936.91675,256.41757 938.59505,259.08564 941.95176,261.06517 C 943.58692,262.18402 944.40456,263.13077 944.40467,263.90536 C 944.40456,265.54062 942.72626,267.34803 939.36976,269.32756 C 933.17298,273.11448 929.21391,277.71906 927.49258,283.14125 C 926.54585,286.15357 926.07248,289.76838 926.07248,293.98563 L 972.16114,293.98563 M 921.55398,299.14963 C 921.46791,298.11683 921.42487,296.13731 921.42487,293.21104 C 921.42487,282.62486 924.52328,274.70673 930.72007,269.45667 C 932.78567,267.73533 935.4106,266.05703 938.59516,264.42177 C 935.32463,263.38897 933.12994,260.89302 932.01107,256.93396 C 931.58075,255.64296 931.36557,254.30893 931.36557,252.93186 C 931.36557,247.16541 934.29183,243.0342 940.14437,240.53829 C 938.7672,238.04234 938.07866,235.58946 938.07877,233.17958 C 938.07866,229.22052 940.01516,226.29426 943.88825,224.4008 C 945.52342,223.62619 947.28779,223.23889 949.18135,223.23889 C 953.57065,223.23889 956.79814,224.91719 958.86385,228.27379 C 959.81048,229.73693 960.28385,231.37219 960.28395,233.17958 C 960.28385,235.50338 959.50924,237.95629 957.96015,240.53829 C 963.89864,242.94815 966.86794,247.07934 966.86805,252.93186 C 966.86794,257.49341 965.18964,260.93606 961.83314,263.25986 C 961.14451,263.77627 960.3699,264.16357 959.50934,264.42177 C 967.25524,268.38083 972.29013,273.41573 974.61405,279.52644 C 976.07707,283.31338 976.80864,287.87491 976.80874,293.21104 C 976.80864,296.05123 976.7656,298.03076 976.67963,299.14963 L 921.55398,299.14963"
+       id="path1688"
+       style="font-size:12px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1pt;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Bitstream Vera Sans" />
+  </g>
+</svg>
