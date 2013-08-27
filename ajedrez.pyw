@@ -52,20 +52,18 @@ class Main:
 		# boolean para saber si hay alguna ficha seleccionada
 		seleccion = False
 		
-		
-		
 		# dibujar la pantalla
 		grafico.dibujarTablero()
 		
 		while True: # loop principal del juego
 		
-			primerMouseClic = False
+			mouseClic = False
 			segundoMouseClic = False
 			
 			# TODO vigile esta parte weon
 			if seleccion:
 				grafico.dibujarTablero()
-				grafico.dibujarCaminoIluminado()
+				grafico.dibujarCaminoIluminado(None, None)
 			else:
 				grafico.dibujarTablero()
 
@@ -74,30 +72,37 @@ class Main:
 				if evento.type == QUIT or (evento.type == KEYUP and evento.key == K_ESCAPE):
 					pygame.quit()
 					sys.exit()
-				elif (not primerMouseClic or not segundoMouseClic) and evento.type == MOUSEMOTION:
+				elif not mouseClic and evento.type == MOUSEMOTION:
 					mousex, mousey = evento.pos 
-				elif (not primerMouseClic or not segundoMouseClic) and evento.type == MOUSEBUTTONUP:
+				elif not mouseClic and evento.type == MOUSEBUTTONUP:
 					mousex, mousey = evento.pos
-					if seleccion:
-						segundoMouseClic = True
-					else:
-						primerMouseClic = True
+					mouseClic = True
+					
 					
 			# comprobar si el mouse esta actualmente en un cuadro
 			cuadrox, cuadroy = grafico.getCuadroEnPixel(mousex, mousey)					
 			
-			#TODO controlar segundo clic y etc con respecto a los clics y pos mouse
-			if cuadrox != None and cuadroy != None and primerMouseClic:
-				# mouse hizo clic sobre alguna ficha de turno
-				if logico.hayFichaJugador(cuadrox, cuadroy, jugadorActual) and not seleccion:
-					# aqui va iluminar camino #
-					logico.getCamino(cuadrox, cuadroy)
-					grafico.dibujarCaminoIluminado()
-					seleccion = True
-			elif cuadrox != None and cuadroy != None and (not primerMouseClic or not segundoMouseClic) and not seleccion:
-				# el mouse esta sobre un cuadro
+			if cuadrox != None and cuadroy != None and not mouseClic:
 				if logico.hayFichaJugador(cuadrox, cuadroy, jugadorActual):
+					# el mouse esta sobre un cuadro
 					grafico.dibujarCuadroIluminado(cuadrox, cuadroy)
+				elif logico.estaEnCamino(cuadrox, cuadroy) and seleccion:
+					# el mouse esta sobre un cuadro del camino de la ficha
+					grafico.dibujarCuadroIluminado(cuadrox, cuadroy, True)
+					
+			elif cuadrox != None and cuadroy != None and mouseClic:			
+				if logico.hayFichaJugador(cuadrox, cuadroy, jugadorActual):
+					# mouse hizo clic sobre alguna ficha de turno
+					logico.setCamino(cuadrox, cuadroy)
+					grafico.dibujarCaminoIluminado(cuadrox, cuadroy)
+					seleccion = True
+					
+				elif logico.estaEnCamino(cuadrox, cuadroy):
+					# mouse hizo clic en una posicion del camino
+					# TODO hacer la vara de mover aqui
+					print("Esta en el camino")
+					
+			
 			
 			pygame.display.update()	
 			FPSCLOCK.tick(self.FPS)	
@@ -117,8 +122,9 @@ class Grafico:
 	TAMANO = None
 	CENTRO = None
 	
-	DIRECCION = None
+	RUTA = None
 	CARPETA = None
+	DIRECCION = None
 	IMAGENES = [None, None, None]
 	
 	POSBX = None
@@ -141,9 +147,10 @@ class Grafico:
 		self.ANCHO_CUADRO =  self.ANCHO_VENTANA / self.TAMANO
 		self.DIRECCION = ("rey.png","blanca.png","negra.png")
 		self.CARPETA = ("img")
+		self.RUTA = sys.argv[0][:len(sys.argv[0])-11]
 		
 		for i in range(3):
-			self.IMAGENES[i] = pygame.image.load(os.path.join(self.CARPETA, self.DIRECCION[i]))	
+			self.IMAGENES[i] = pygame.image.load(os.path.join(self.RUTA, self.CARPETA, self.DIRECCION[i]))	
 		self.IMAGENES = tuple(self.IMAGENES)
 		
 		self.POSBX = constantes[3]
@@ -183,6 +190,7 @@ class Grafico:
 					return (cuadrox, cuadroy)
 		return (None, None)
 		
+		
 	""" Dibuja los cuadros del tablero """	
 	def dibujarCuadros(self):
 		for cuadrox in range(self.TAMANO):
@@ -190,7 +198,8 @@ class Grafico:
 				izquierda, arriba = self.coordEsquinaCuadro(cuadrox, cuadroy)
 				pygame.draw.rect(self.SUPERFICIE, self.logico.getColorCuadro(cuadrox, cuadroy), (izquierda, arriba, self.LARGO_CUADRO, self.ANCHO_CUADRO))
 		
-		
+	
+	""" Dibuja el icono de una ficha """
 	def dibujarFicha(self, cuadrox, cuadroy):
 		if self.logico.getPos(cuadrox, cuadroy) == "rey":
 			iconoParaDibujar = pygame.transform.smoothscale(self.IMAGENES[0], (int(self.LARGO_CUADRO * 0.80), int(self.ANCHO_CUADRO * 0.75)))
@@ -213,14 +222,20 @@ class Grafico:
 					
 
 	""" Vuelve a dibujar el cuadro señalado por los parámetros pero de un color más claro. """
-	def dibujarCuadroIluminado(self, cuadrox, cuadroy):
+	def dibujarCuadroIluminado(self, cuadrox, cuadroy, alReves=None):
 		izquierda, arriba = self.coordEsquinaCuadro(cuadrox, cuadroy)
-		pygame.draw.rect(self.SUPERFICIE, self.logico.getColorIluminado(cuadrox, cuadroy), (izquierda, arriba, self.LARGO_CUADRO, self.ANCHO_CUADRO))
+		if alReves:
+			pygame.draw.rect(self.SUPERFICIE, self.logico.getColorCuadro(cuadrox, cuadroy), (izquierda, arriba, self.LARGO_CUADRO, self.ANCHO_CUADRO))
+		else:
+			pygame.draw.rect(self.SUPERFICIE, self.logico.getColorIluminado(cuadrox, cuadroy), (izquierda, arriba, self.LARGO_CUADRO, self.ANCHO_CUADRO))
 		self.dibujarFicha(cuadrox, cuadroy)
 		
 		
-	def dibujarCaminoIluminado(self):
-		camino = self.logico.getListaCuadros()
+	""" Dibuja el camino iluminado de la ficha seleccionada """	
+	def dibujarCaminoIluminado(self, cuadrox, cuadroy):
+		camino = self.logico.getCamino()
+		if cuadrox != None and cuadroy != None: 
+			self.dibujarCuadroIluminado(cuadrox, cuadroy)
 		for cuadro in camino:
 			self.dibujarCuadroIluminado(cuadro[0], cuadro[1])
 		
@@ -238,10 +253,10 @@ class Grafico:
 ###########################################################################################################
 	
 class Logico:
-
+# TODO hacer modulos xq esta vara se esta agrandando
     #                R    G    B
-	COLOR1 =       (100,  68,  54)
-	COLOR2 =       (223, 193, 132)
+	COLOR1 =       ( 80,  48,  34)
+	COLOR2 =       (203, 173, 112)
 	COLOR_CLARO1 = (140, 108,  94)
 	COLOR_CLARO2 = (255, 233, 172)
 	
@@ -259,7 +274,7 @@ class Logico:
 	
 	tablero = None
 	
-	camino = None
+	camino = []
 	
 	def __init__(self, constantes):
 		self.TAMANO = constantes[2]
@@ -301,6 +316,7 @@ class Logico:
 		return self.tablero[cuadrox][cuadroy]
 		
 		
+	""" Devuelve true si no hay ficha en un cuadro """	
 	def noHayFicha(self, cuadrox, cuadroy):
 		if self.tablero[cuadrox][cuadroy] == "":
 			return True
@@ -322,7 +338,9 @@ class Logico:
 				return False
 				
 				
-	def getCamino(self, cuadrox, cuadroy):
+	""" Dada una posicion de ficha busca los posibles lugares donde esta se puede mover """
+	# TODO recuerde modificar para restringir las esquinas	
+	def setCamino(self, cuadrox, cuadroy):
 		copiaTablero = self.getCopiaTablero()
 		self.camino = []
 		# verifique a la derecha
@@ -348,8 +366,17 @@ class Logico:
 		return self.camino
 	
 	
-	def getListaCuadros(self):
+	""" Devuelve la lista de camino actual """
+	def getCamino(self):
 		return self.camino
+	
+	""" Si el cuadro indicado esta dentro de la lista de camino, true """
+	def estaEnCamino(self, cuadrox, cuadroy):
+		for cuadro in self.camino:
+			if cuadro == (cuadrox, cuadroy):
+				return True
+		
+		return False
 	
 	
 	""" Devuelve el color de fondo del tablero """
