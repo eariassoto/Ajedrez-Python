@@ -95,6 +95,8 @@ class Main:
 				elif logico.estaEnCamino(cuadrox, cuadroy) and seleccion:
 					# el mouse esta sobre un cuadro del camino de la ficha
 					grafico.dibujarCuadroIluminado(cuadrox, cuadroy, fichaSeleccion)
+					if logico.hayQueComer(cuadrox, cuadroy, jugadorActual):
+						print logico.getComer()
 					
 			elif cuadrox != None and cuadroy != None and mouseClic:			
 				if logico.hayFichaJugador(cuadrox, cuadroy, jugadorActual):
@@ -312,6 +314,14 @@ class Logico:
 		self.tablero.setPos(cx, cy, cnx, cny)
 		print self.comer.comerFicha(self.getCopiaTablero(), cnx, cny, jugAct)
 	
+	
+	def hayQueComer(self, cuadrox, cuadroy, jugAct):
+		return self.comer.comerFicha(self.getCopiaTablero(), cuadrox, cuadroy, jugAct)
+		
+	
+	def getComer(self):
+		return self.comer.getComer()
+	
 		
 	""" Devuelve el color de fondo del tablero """
 	def getColorFondo(self):
@@ -490,19 +500,22 @@ class Comer:
 	JUGADOR1 = "jugador1"
 	JUGADOR2 = "jugador2"	
 	
+	comer = None
 	
 	def __init__(self, tamano):
 		self.TAMANO = tamano
+		self.comer = []
 		
 		
 	def comerFicha(self, copiaTablero, cuadrox, cuadroy, jugAct):
+		self.comer = []
 		
 		if jugAct == self.JUGADOR1:
 			oponente = ("rey", "sueco")
 			aliado = ("moscovita", "moscovita")
 		else:
 			oponente = ("moscovita", "moscovita")
-			aliado = ("moscovita", "moscovita")
+			aliado = ("rey", "sueco")
 		
 		tablero = copiaTablero
 		
@@ -510,40 +523,51 @@ class Comer:
 		
 		# esquinas
 		if cuadrox == 0 and cuadroy == 2 and (tablero[0][1] == oponente[0] or tablero[0][1] == oponente[1]):
+			self.comer.append((0,1))
 			b = True
 		elif cuadrox == 0 and cuadroy == self.TAMANO-3 and (tablero[0][self.TAMANO-2] == oponente[0] or tablero[0][self.TAMANO-2] == oponente[1]):
+			self.comer.append((0,self.TAMANO-2))
 			b = True
 		elif cuadrox == self.TAMANO-1 and cuadroy == 2 and (tablero[self.TAMANO-1][1] == oponente[0] or tablero[self.TAMANO-1][1] == oponente[1]):
+			self.comer.append((self.TAMANO-1,1))
 			b = True
 		elif cuadrox == self.TAMANO-1 and cuadroy == self.TAMANO-3 and (tablero[self.TAMANO-1][self.TAMANO-2] == oponente[0] or tablero[self.TAMANO-1][self.TAMANO-2] == oponente[1]):
+			self.comer.append((self.TAMANO-1,self.TAMANO-2))
 			b = True
 		elif cuadrox == 2 and cuadroy == 0 and (tablero[1][0] == oponente[0] or tablero[1][0] == oponente[1]):
+			self.comer.append((1,0))
 			b = True
 		elif cuadrox == self.TAMANO-3 and cuadroy == 0 and (tablero[self.TAMANO-2][0] == oponente[0] or tablero[self.TAMANO-2][0] == oponente[1]):
+			self.comer.append((self.TAMANO-2,0))
 			b = True
 		elif cuadrox == 2 and cuadroy == self.TAMANO-1 and (tablero[1][self.TAMANO-1] == oponente[0] or tablero[1][self.TAMANO-1] == oponente[1]):
+			self.comer.append((1,self.TAMANO-1))
 			b = True	
 		elif cuadrox == self.TAMANO-3 and cuadroy == self.TAMANO-1 and (tablero[self.TAMANO-2][self.TAMANO-1] == oponente[0] or tablero[self.TAMANO-2][self.TAMANO-1] == oponente[1]):
+			self.comer.append((self.TAMANO-2,self.TAMANO-1))
 			b = True
 			
 		# limites
 		if cuadrox >= 2: 
 			if tablero[cuadrox-2][cuadroy] == (aliado[0] or aliado[1]) and (tablero[cuadrox-1][cuadroy] == oponente[0] or tablero[cuadrox-1][cuadroy] == oponente[1]):
+				self.comer.append((cuadrox-1, cuadroy))
 				b = True
-	
 		if cuadrox <= self.TAMANO-3:
 			if tablero[cuadrox+2][cuadroy] == (aliado[0] or aliado[1]) and (tablero[cuadrox+1][cuadroy] == oponente[0] or tablero[cuadrox+1][cuadroy] == oponente[1]):
+				self.comer.append((cuadrox+1,cuadroy))
 				b = True
-			
 		if cuadroy >= 2:
 			if tablero[cuadrox][cuadroy-2] == (aliado[0] or aliado[1]) and (tablero[cuadrox][cuadroy-1] == oponente[0] or tablero[cuadrox][cuadroy-1] == oponente[1]):
+				self.comer.append((cuadrox,cuadroy-1))
 				b = True;
-			
 		if cuadroy <= self.TAMANO-3:
 			if tablero[cuadrox][cuadroy+2] == (aliado[0] or aliado[1]) and (tablero[cuadrox][cuadroy+1] == oponente[0] or tablero[cuadrox][cuadroy+1] == oponente[1]):
+				self.comer.append((cuadrox,cuadroy+1))
 				b = True;
-
 		return b;
+		
+	def getComer(self):
+		return self.comer
 
 				
 if __name__ == '__main__':
