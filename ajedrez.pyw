@@ -61,7 +61,6 @@ class Main:
 		while True: # loop principal del juego
 		
 			mouseClic = False
-			segundoMouseClic = False
 			
 			if seleccion:
 				grafico.dibujarTablero()
@@ -266,14 +265,11 @@ class Grafico:
 		self.SUPERFICIE.fill(self.logico.getColorFondo())
 		self.dibujarCuadros()
 		self.dibujarFichas()
-		
-	
-	
+			
 ########################################### Clase Logico ##################################################	
 #         Maneja los datos y la lógica del juego, formada por las clases Tablero, Camino y Comer          #
 ###########################################################################################################	
 class Logico:
-# TODO hacer modulos xq esta vara se esta agrandando
     #                R    G    B
 	COLOR1 =       ( 80,  48,  34)
 	COLOR2 =       (203, 173, 112)
@@ -566,7 +562,7 @@ class Comer:
 	def comerFicha(self, copiaTablero, cuadrox, cuadroy, jugAct):
 		self.listaComer = []
 		if jugAct == self.JUGADOR1:
-			oponente = ("rey", "sueco")
+			oponente = ("sueco", "rey")
 			aliado = ("moscovita", "moscovita")
 		elif jugAct == self.JUGADOR2:
 			oponente = ("moscovita", "moscovita")
@@ -602,28 +598,26 @@ class Comer:
 			b = True
 			
 		# limites
-		if cuadrox >= 2: 
-			if tablero[cuadrox-1][cuadroy] == oponente[0] or tablero[cuadrox-1][cuadroy] == oponente[1]:
-				#busque arriba
-				if tablero[cuadrox-2][cuadroy] == aliado[0] or tablero[cuadrox-2][cuadroy] == aliado[1]:
-					self.listaComer.append((cuadrox-1, cuadroy))
-					b = True
-			# busque a la derecha
-			if tablero[cuadrox][cuadroy-1] == oponente[0] or tablero[cuadrox][cuadroy-1] == oponente[1]:
-				if tablero[cuadrox][cuadroy-2] == aliado[0] or tablero[cuadrox][cuadroy-2] == aliado[1]:
+		if tablero[cuadrox-1][cuadroy] == oponente[0] or tablero[cuadrox-1][cuadroy] == oponente[1]:
+			#busque arriba
+			if tablero[cuadrox-2][cuadroy] == aliado[0] or tablero[cuadrox-2][cuadroy] == aliado[1]:
+				self.listaComer.append((cuadrox-1, cuadroy))
+				b = True
+		# busque a la izquierda
+		if tablero[cuadrox][cuadroy-1] == oponente[0] or tablero[cuadrox][cuadroy-1] == oponente[1]:
+			if tablero[cuadrox][cuadroy-2] == aliado[0] or tablero[cuadrox][cuadroy-2] == aliado[1]:
 				self.listaComer.append((cuadrox,cuadroy-1))
 				b = True;
-		if cuadrox <= self.TAMANO-3:
-			# busque abajo
-			if tablero[cuadrox+1][cuadroy] == oponente[0] or tablero[cuadrox+1][cuadroy] == oponente[1]:
-				if tablero[cuadrox+2][cuadroy] == aliado[0] or tablero[cuadrox+2][cuadroy] == aliado[1]:
-					self.listaComer.append((cuadrox+1,cuadroy))
-					b = True
-			# busque a la izquierda
-			if tablero[cuadrox][cuadroy+1] == oponente[0] or tablero[cuadrox][cuadroy+1] == oponente[1]:
-				if tablero[cuadrox][cuadroy+2] == aliado[0] or tablero[cuadrox][cuadroy+2] == aliado[1]:
-					self.listaComer.append((cuadrox,cuadroy+1))
-					b = True;
+		# busque abajo
+		if tablero[cuadrox+1][cuadroy] == oponente[0] or tablero[cuadrox+1][cuadroy] == oponente[1]:
+			if tablero[cuadrox+2][cuadroy] == aliado[0] or tablero[cuadrox+2][cuadroy] == aliado[1]:
+				self.listaComer.append((cuadrox+1,cuadroy))
+				b = True
+		# busque a la derecha
+		if tablero[cuadrox][cuadroy+1] == oponente[0] or tablero[cuadrox][cuadroy+1] == oponente[1]:
+			if tablero[cuadrox][cuadroy+2] == aliado[0] or tablero[cuadrox][cuadroy+2] == aliado[1]:
+				self.listaComer.append((cuadrox,cuadroy+1))
+				b = True;
 		return b;
 		
 		
