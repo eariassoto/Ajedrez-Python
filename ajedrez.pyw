@@ -109,7 +109,6 @@ class Main:
 			pygame.display.update()	
 			FPSCLOCK.tick(self.FPS)	
 	
-	
 #############################################  Clase Grafico ##############################################
 #                  Pinta la ventana conforme los datos proporcionados por la clase Logico                 # 
 ###########################################################################################################
@@ -281,11 +280,13 @@ class Logico:
 	tablero = None
 	camino = None
 	comer = None
+	estado = None
 	
 	def __init__(self, constantes):
 		self.camino = Camino(constantes[2])
 		self.tablero = Tablero(constantes)
 		self.comer = Comer(constantes[2])
+		self.estado = Estado(constantes[2])
 		self.crearTablero()
 		
 		
@@ -351,6 +352,7 @@ class Logico:
 		if self.comer.comerFicha(self.getCopiaTablero(), cnx, cny, jugAct):
 			for cuadro in self.getComer():
 				self.tablero.setFicha(cuadro[0], cuadro[1])
+		self.estado.verificarLimites(self.getCopiaTablero())
 	
 
 	""" Devuelve el color de fondo del tablero. """
@@ -472,8 +474,9 @@ class Tablero:
 				return False
 			
 				
-########################################### Clase Tablero #################################################	
+########################################### Clase Camino ##################################################	
 #                  Calcula las posibles posiciones de movimento de una ficha del tablero.                 #
+# TODO quitar el centro del camino
 ###########################################################################################################	
 class Camino:
 
@@ -540,7 +543,7 @@ class Camino:
 				return True
 		return False
 	
-########################################### Clase Tablero #################################################	
+########################################### Clase Comer ###################################################	
 #                      Calcula las posibles fichas que una ficha se pueda comer.                          #
 ###########################################################################################################					
 class Comer:
@@ -625,7 +628,73 @@ class Comer:
 	def getComer(self):
 		return self.listaComer
 
+########################################### Clase Estado ##################################################	
+#                                   Calcula el estado del Tablero.                                        #
+###########################################################################################################	
+class Estado:
+	TAMANO = None
+	CENTRO = None
+	
+	def __init__(self, tamano):
+		self.TAMANO = tamano
+		self.CENTRO = (tamano-1) / 2
+		
+		
+	def buscarRey(self, copiaTablero):
+		for i in range(self.TAMANO):
+			for j in range(self.TAMANO):
+				if copiaTablero[i][j] == "rey":
+					return (i, j)
+	
+	
+	def verificarEsquinas(self, copiaTablero):
+		tablero = copiaTablero
+		if tablero[0][0] == "rey" or tablero[0][TAMANO-1] == "rey" or tablero[TAMANO-1][0] == "rey" or tablero[TAMANO-1][TAMANO-1] == "rey":
+			return True
+		else:
+			return False			
+
+	
+	def verificarLimites(self, copiaTablero):
+		tablero = copiaTablero
+		posRey = self.buscarRey(tablero)
+		
+		# derecha, izquierda, arriba, abajo
+		limitesRey = [0, 0, 0, 0]
+		
+		# esquinas
+		if posRey == (0, self.TAMANO-2) or posRey == (self.TAMANO-1, self.TAMANO-2):
+			limitesRey[0] = 1
+		elif posRey == (0, 1) or posRey == (self.TAMANO-1, 1):		
+			limitesRey[1] = 1
+		elif posRey == (1, 0) or posRey == (1, self.TAMANO-1):
+			limitesRey[2] = 1
+		elif posRey == (self.TAMANO-2, 0) or posRey == (self.TAMANO-2, self.TAMANO-1):
+			limitesRey[3] = 1	
+			
+		limites = ( 
+		(0, posRey[1], self.TAMANO-1, (self.CENTRO, self.CENTRO-1), posRey[0], posRey[1]+1, posRey[0], posRey[1]+2),
+		(1, posRey[1], 0, (self.CENTRO, self.CENTRO+1), posRey[0], posRey[1]-1, posRey[0], posRey[1]-2),
+		(2, posRey[0], 0, (self.CENTRO+1, self.CENTRO), posRey[0]-1, posRey[1], posRey[0]-2, posRey[1]),
+		(3, posRey[0], self.TAMANO-1, (self.CENTRO-1, self.CENTRO), posRey[0]+1, posRey[1], posRey[0]+2, posRey[1]) )
+		
+		for lim in limites:
+			if lim[1] == lim[2]:
+				# esta en una orilla
+				limitesRey[lim[0]] = 1
+			elif posRey == lim[3]:
+				# esta al lado del centro del tablero
+				limitesRey[lim[0]] = 1
+			elif tablero[lim[4]][lim[5]] == "sueco" and tablero[lim[6]][lim[7]] == "moscovita":
+				# tiene una ficha blanca seguida de una negra a la par
+				limitesRey[lim[0]] = 1
+			elif tablero[lim[4]][lim[5]] == "moscovita":
+				# tiene una ficha negra a la par 
+				limitesRey[lim[0]] = 1
 				
+		print(limitesRey)
+	
+	
 if __name__ == '__main__':
 	main = Main()
 	main.iniciar()
