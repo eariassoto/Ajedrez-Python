@@ -266,7 +266,7 @@ class Grafico:
 		self.dibujarFichas()
 			
 ########################################### Clase Logico ##################################################	
-#         Maneja los datos y la lógica del juego, formada por las clases Tablero, Camino y Comer          #
+#         Maneja los datos y la lógica del juego, formada por las clases Tablero y Calculos               #
 ###########################################################################################################	
 class Logico:
     #                R    G    B
@@ -278,15 +278,11 @@ class Logico:
 	
 	# almacenaran las instancias de clase
 	tablero = None
-	camino = None
-	comer = None
-	estado = None
+	calculos = None
 	
 	def __init__(self, constantes):
-		self.camino = Camino(constantes[2])
 		self.tablero = Tablero(constantes)
-		self.comer = Comer(constantes[2])
-		self.estado = Estado(constantes[2])
+		self.calculos = Calculos(constantes[2])
 		self.crearTablero()
 		
 		
@@ -311,49 +307,47 @@ class Logico:
 	def hayFichaJugador(self, cuadrox, cuadroy, jugadorActual):
 		return self.tablero.hayFichaJugador(cuadrox, cuadroy, jugadorActual)
 		
+	""" Calcula si hay posibles fichas para comer dada una determinada posición
+	devuelve True si hay al menos una.
+	"""
+	def hayQueComer(self, cuadrox, cuadroy, jugAct):
+		return self.tablero.comerFicha(cuadrox, cuadroy, jugAct)
 	
-	# Operaciones que interactúan con la clase Camino #
+	
+	""" Devuelve la lista con las posiciones para comer. """
+	def getComer(self):
+		return self.tablero.getComer()
+	
+	
+	""" Mueve una ficha del tablero y busca si hay fichas para comer. """
+	def mover(self, cx, cy, cnx, cny, jugAct):
+		self.tablero.setFicha(cx, cy, cnx, cny)
+		if self.tablero.comerFicha(cnx, cny, jugAct):
+			for cuadro in self.getComer():
+				self.tablero.setFicha(cuadro[0], cuadro[1])
+		self.calculos.verificarLimites(self.getCopiaTablero())
+	
+	
+		# Operaciones que interactúan con la clase Calculos #
 	
 	""" Dada una posicion calcula el "camino" que esa ficha puede recorrer. """
 	def setCamino(self, cuadrox, cuadroy):
-		self.camino.setCamino(self.getCopiaTablero(), cuadrox, cuadroy)
+		self.calculos.setCamino(self.getCopiaTablero(), cuadrox, cuadroy)
 		
 	
 	""" Retorna la lista con los cuadros del camino de la ficha. """	
 	def getCamino(self):
-		return self.camino.getCamino()
+		return self.calculos.getCamino()
 		
 	
 	""" Devuelve True si la posición indicada por los parametros forma parte de la lista
 	actual del "camino". 
 	"""	
 	def estaEnCamino(self, cuadrox, cuadroy):
-		return self.camino.estaEnCamino(cuadrox, cuadroy)	
-	
-	
-	# Operaciones que interactúan con la clase Comer #
-	
-	""" Calcula si hay posibles fichas para comer dada una determinada posición
-	devuelve True si hay al menos una.
-	"""
-	def hayQueComer(self, cuadrox, cuadroy, jugAct):
-		return self.comer.comerFicha(self.getCopiaTablero(), cuadrox, cuadroy, jugAct)
-	
-	
-	""" Devuelve la lista con las posiciones para comer. """
-	def getComer(self):
-		return self.comer.getComer()
+		return self.calculos.estaEnCamino(cuadrox, cuadroy)
 		
-	# Operaciones en conjunto #
-	
-	""" Mueve una ficha del tablero y busca si hay fichas para comer. """
-	def mover(self, cx, cy, cnx, cny, jugAct):
-		self.tablero.setFicha(cx, cy, cnx, cny)
-		if self.comer.comerFicha(self.getCopiaTablero(), cnx, cny, jugAct):
-			for cuadro in self.getComer():
-				self.tablero.setFicha(cuadro[0], cuadro[1])
-		self.estado.verificarLimites(self.getCopiaTablero())
-	
+
+	# Funciones que retornan colores en formato RGB #
 
 	""" Devuelve el color de fondo del tablero. """
 	def getColorFondo(self):
@@ -407,8 +401,9 @@ class Tablero:
 	
 	JUGADOR1 = "jugador1"
 	JUGADOR2 = "jugador2"
-	
+
 	tablero = None
+	listaComer = None
 	
 	def __init__(self, constantes):
 		self.TAMANO = constantes[2]
@@ -451,10 +446,6 @@ class Tablero:
 			self.tablero[cuadrox][cuadroy] = ""
 		
 		
-	def sdfetPos(self):	
-		print("a")
-		
-		
 	""" Devuelve una posición de la matriz. """
 	def getPos(self, cuadrox, cuadroy):
 		return self.tablero[cuadrox][cuadroy]
@@ -472,30 +463,115 @@ class Tablero:
 				return True
 			else:
 				return False
-			
 				
-########################################### Clase Camino ##################################################	
-#                  Calcula las posibles posiciones de movimento de una ficha del tablero.                 #
-# TODO quitar el centro del camino
+		
+	""" Calcula si hay posibles fichas para comer dada una determinada posición
+	devuelve True si hay al menos una.
+	"""		
+	def comerFicha(self, cuadrox, cuadroy, jugAct):
+		self.listaComer = []
+		if jugAct == self.JUGADOR1:
+			oponente = ("sueco", "rey")
+			aliado = ("moscovita", "moscovita")
+		elif jugAct == self.JUGADOR2:
+			oponente = ("moscovita", "moscovita")
+			aliado = ("rey", "sueco")
+			
+		b = False
+		
+		# esquinas
+		if cuadrox == 0 and cuadroy == 2 and (self.tablero[0][1] == oponente[0] or self.tablero[0][1] == oponente[1]):
+			self.listaComer.append((0,1))
+			b = True
+		elif cuadrox == 0 and cuadroy == self.TAMANO-3 and (self.tablero[0][self.TAMANO-2] == oponente[0] or self.tablero[0][self.TAMANO-2] == oponente[1]):
+			self.listaComer.append((0,self.TAMANO-2))
+			b = True
+		elif cuadrox == self.TAMANO-1 and cuadroy == 2 and (self.tablero[self.TAMANO-1][1] == oponente[0] or self.tablero[self.TAMANO-1][1] == oponente[1]):
+			self.listaComer.append((self.TAMANO-1,1))
+			b = True
+		elif cuadrox == self.TAMANO-1 and cuadroy == self.TAMANO-3 and (self.tablero[self.TAMANO-1][self.TAMANO-2] == oponente[0] or self.tablero[self.TAMANO-1][self.TAMANO-2] == oponente[1]):
+			self.listaComer.append((self.TAMANO-1,self.TAMANO-2))
+			b = True
+		elif cuadrox == 2 and cuadroy == 0 and (self.tablero[1][0] == oponente[0] or self.tablero[1][0] == oponente[1]):
+			self.listaComer.append((1,0))
+			b = True
+		elif cuadrox == self.TAMANO-3 and cuadroy == 0 and (self.tablero[self.TAMANO-2][0] == oponente[0] or self.tablero[self.TAMANO-2][0] == oponente[1]):
+			self.listaComer.append((self.TAMANO-2,0))
+			b = True
+		elif cuadrox == 2 and cuadroy == self.TAMANO-1 and (self.tablero[1][self.TAMANO-1] == oponente[0] or self.tablero[1][self.TAMANO-1] == oponente[1]):
+			self.listaComer.append((1,self.TAMANO-1))
+			b = True	
+		elif cuadrox == self.TAMANO-3 and cuadroy == self.TAMANO-1 and (self.tablero[self.TAMANO-2][self.TAMANO-1] == oponente[0] or self.tablero[self.TAMANO-2][self.TAMANO-1] == oponente[1]):
+			self.listaComer.append((self.TAMANO-2,self.TAMANO-1))
+			b = True
+			
+		# limites
+		if self.tablero[cuadrox-1][cuadroy] == oponente[0] or self.tablero[cuadrox-1][cuadroy] == oponente[1]:
+			#busque arriba
+			if self.tablero[cuadrox-2][cuadroy] == aliado[0] or self.tablero[cuadrox-2][cuadroy] == aliado[1]:
+				self.listaComer.append((cuadrox-1, cuadroy))
+				b = True
+		# busque a la izquierda
+		if self.tablero[cuadrox][cuadroy-1] == oponente[0] or self.tablero[cuadrox][cuadroy-1] == oponente[1]:
+			if self.tablero[cuadrox][cuadroy-2] == aliado[0] or self.tablero[cuadrox][cuadroy-2] == aliado[1]:
+				self.listaComer.append((cuadrox,cuadroy-1))
+				b = True;
+		# busque abajo
+		if self.tablero[cuadrox+1][cuadroy] == oponente[0] or self.tablero[cuadrox+1][cuadroy] == oponente[1]:
+			if self.tablero[cuadrox+2][cuadroy] == aliado[0] or self.tablero[cuadrox+2][cuadroy] == aliado[1]:
+				self.listaComer.append((cuadrox+1,cuadroy))
+				b = True
+		# busque a la derecha
+		if self.tablero[cuadrox][cuadroy+1] == oponente[0] or self.tablero[cuadrox][cuadroy+1] == oponente[1]:
+			if self.tablero[cuadrox][cuadroy+2] == aliado[0] or self.tablero[cuadrox][cuadroy+2] == aliado[1]:
+				self.listaComer.append((cuadrox,cuadroy+1))
+				b = True;
+		return b;
+		
+		
+	""" Devuelve la lista con las posiciones para comer. """		
+	def getComer(self):
+		return self.listaComer
+	
+	
+########################################### Clase Calculos ################################################	
+#                         Realiza los calculos necesarios conforme al tablero                             #
 ###########################################################################################################	
-class Camino:
-
+class Calculos:
 	TAMANO = None
+	CENTRO = None
+	
 	camino = None
+	
 	
 	def __init__(self, tamano):
 		self.camino = []
 		self.TAMANO = tamano
+		self.CENTRO = (tamano-1) / 2
+		
+		
+	#   Operaciones para el calculo del camino de una ficha    #
 	
-	
-	""" Devuelve True si no hay ficha en un cuadro. """	
+		""" Devuelve True si no hay ficha en un cuadro. """	
 	def noHayFicha(self, tablero, cuadrox, cuadroy):
 		if tablero[cuadrox][cuadroy] == "":
 			return True
 		else:
 			return False
 			
-	
+	""" Si el cuadro indicado esta dentro de la lista de camino, True """
+	def estaEnCamino(self, cuadrox, cuadroy):
+		for cuadro in self.camino:
+			if cuadro == (cuadrox, cuadroy):
+				return True
+		return False
+
+		
+	""" Devuelve la lista de camino actual """
+	def getCamino(self):
+		return self.camino
+		
+		
 	""" Dada una posicion de ficha busca los posibles lugares donde esta se puede mover. """
 	def setCamino(self, tablero, cuadrox, cuadroy):
 		copiaTablero = tablero
@@ -524,121 +600,15 @@ class Camino:
 			
 		if copiaTablero[cuadrox][cuadroy] != "rey":
 			if (0,0) in self.camino: self.camino.remove((0,0))	
+			if (self.CENTRO, self.CENTRO) in self.camino: self.camino.remove((self.CENTRO, self.CENTRO))	
 			if (0, self.TAMANO-1) in self.camino: self.camino.remove((0, self.TAMANO-1))	
 			if (self.TAMANO-1, 0) in self.camino: self.camino.remove((self.TAMANO-1, 0))	
 			if (self.TAMANO-1, self.TAMANO-1) in self.camino: self.camino.remove((self.TAMANO-1, self.TAMANO-1))	
 		
 		return self.camino
-	
-	
-	""" Devuelve la lista de camino actual """
-	def getCamino(self):
-		return self.camino
-	
-	
-	""" Si el cuadro indicado esta dentro de la lista de camino, True """
-	def estaEnCamino(self, cuadrox, cuadroy):
-		for cuadro in self.camino:
-			if cuadro == (cuadrox, cuadroy):
-				return True
-		return False
-	
-########################################### Clase Comer ###################################################	
-#                      Calcula las posibles fichas que una ficha se pueda comer.                          #
-###########################################################################################################					
-class Comer:
 
-	TAMANO = None
-	JUGADOR1 = "jugador1"
-	JUGADOR2 = "jugador2"	
-	
-	listaComer = None
-	
-	def __init__(self, tamano):
-		self.TAMANO = tamano
-		self.listaComer = []
 		
-		
-	""" Calcula si hay posibles fichas para comer dada una determinada posición
-	devuelve True si hay al menos una.
-	"""		
-	def comerFicha(self, copiaTablero, cuadrox, cuadroy, jugAct):
-		self.listaComer = []
-		if jugAct == self.JUGADOR1:
-			oponente = ("sueco", "rey")
-			aliado = ("moscovita", "moscovita")
-		elif jugAct == self.JUGADOR2:
-			oponente = ("moscovita", "moscovita")
-			aliado = ("rey", "sueco")
-		
-		tablero = copiaTablero
-		b = False
-		
-		# esquinas
-		if cuadrox == 0 and cuadroy == 2 and (tablero[0][1] == oponente[0] or tablero[0][1] == oponente[1]):
-			self.listaComer.append((0,1))
-			b = True
-		elif cuadrox == 0 and cuadroy == self.TAMANO-3 and (tablero[0][self.TAMANO-2] == oponente[0] or tablero[0][self.TAMANO-2] == oponente[1]):
-			self.listaComer.append((0,self.TAMANO-2))
-			b = True
-		elif cuadrox == self.TAMANO-1 and cuadroy == 2 and (tablero[self.TAMANO-1][1] == oponente[0] or tablero[self.TAMANO-1][1] == oponente[1]):
-			self.listaComer.append((self.TAMANO-1,1))
-			b = True
-		elif cuadrox == self.TAMANO-1 and cuadroy == self.TAMANO-3 and (tablero[self.TAMANO-1][self.TAMANO-2] == oponente[0] or tablero[self.TAMANO-1][self.TAMANO-2] == oponente[1]):
-			self.listaComer.append((self.TAMANO-1,self.TAMANO-2))
-			b = True
-		elif cuadrox == 2 and cuadroy == 0 and (tablero[1][0] == oponente[0] or tablero[1][0] == oponente[1]):
-			self.listaComer.append((1,0))
-			b = True
-		elif cuadrox == self.TAMANO-3 and cuadroy == 0 and (tablero[self.TAMANO-2][0] == oponente[0] or tablero[self.TAMANO-2][0] == oponente[1]):
-			self.listaComer.append((self.TAMANO-2,0))
-			b = True
-		elif cuadrox == 2 and cuadroy == self.TAMANO-1 and (tablero[1][self.TAMANO-1] == oponente[0] or tablero[1][self.TAMANO-1] == oponente[1]):
-			self.listaComer.append((1,self.TAMANO-1))
-			b = True	
-		elif cuadrox == self.TAMANO-3 and cuadroy == self.TAMANO-1 and (tablero[self.TAMANO-2][self.TAMANO-1] == oponente[0] or tablero[self.TAMANO-2][self.TAMANO-1] == oponente[1]):
-			self.listaComer.append((self.TAMANO-2,self.TAMANO-1))
-			b = True
-			
-		# limites
-		if tablero[cuadrox-1][cuadroy] == oponente[0] or tablero[cuadrox-1][cuadroy] == oponente[1]:
-			#busque arriba
-			if tablero[cuadrox-2][cuadroy] == aliado[0] or tablero[cuadrox-2][cuadroy] == aliado[1]:
-				self.listaComer.append((cuadrox-1, cuadroy))
-				b = True
-		# busque a la izquierda
-		if tablero[cuadrox][cuadroy-1] == oponente[0] or tablero[cuadrox][cuadroy-1] == oponente[1]:
-			if tablero[cuadrox][cuadroy-2] == aliado[0] or tablero[cuadrox][cuadroy-2] == aliado[1]:
-				self.listaComer.append((cuadrox,cuadroy-1))
-				b = True;
-		# busque abajo
-		if tablero[cuadrox+1][cuadroy] == oponente[0] or tablero[cuadrox+1][cuadroy] == oponente[1]:
-			if tablero[cuadrox+2][cuadroy] == aliado[0] or tablero[cuadrox+2][cuadroy] == aliado[1]:
-				self.listaComer.append((cuadrox+1,cuadroy))
-				b = True
-		# busque a la derecha
-		if tablero[cuadrox][cuadroy+1] == oponente[0] or tablero[cuadrox][cuadroy+1] == oponente[1]:
-			if tablero[cuadrox][cuadroy+2] == aliado[0] or tablero[cuadrox][cuadroy+2] == aliado[1]:
-				self.listaComer.append((cuadrox,cuadroy+1))
-				b = True;
-		return b;
-		
-		
-	""" Devuelve la lista con las posiciones para comer. """		
-	def getComer(self):
-		return self.listaComer
-
-########################################### Clase Estado ##################################################	
-#                                   Calcula el estado del Tablero.                                        #
-###########################################################################################################	
-class Estado:
-	TAMANO = None
-	CENTRO = None
-	
-	def __init__(self, tamano):
-		self.TAMANO = tamano
-		self.CENTRO = (tamano-1) / 2
-		
+	#       Operaciones para calcular el estado del rey.     # 
 		
 	def buscarRey(self, copiaTablero):
 		for i in range(self.TAMANO):
@@ -696,5 +666,9 @@ class Estado:
 	
 	
 if __name__ == '__main__':
+	config = {}
+	execfile("settings.config", config) 
+	print config["value1"]
+	print config["value5"]
 	main = Main()
 	main.iniciar()
