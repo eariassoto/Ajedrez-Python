@@ -464,63 +464,63 @@ class Tablero:
 	def comerFicha(self, cuadrox, cuadroy):
 		self.listaComer = []
 		if self.jugador.getJugador() == "jugador1":
-			oponente = ("sueco", "rey")
-			aliado = ("moscovita", "moscovita")
+			oponente = "sueco"
+			aliado = "moscovita"
 		else:
-			oponente = ("moscovita", "moscovita")
-			aliado = ("rey", "sueco")
+			oponente = "moscovita"
+			aliado = "sueco"
 			
 		b = False
 		
 		# esquinas
-		if cuadrox == 0 and cuadroy == 2 and (self.tablero[0][1] == oponente[0] or self.tablero[0][1] == oponente[1]):
+		if cuadrox == 0 and cuadroy == 2 and self.tablero[0][1] == oponente:
 			self.listaComer.append((0,1))
 			b = True
-		elif cuadrox == 0 and cuadroy == self.TAMANO-3 and (self.tablero[0][self.TAMANO-2] == oponente[0] or self.tablero[0][self.TAMANO-2] == oponente[1]):
+		elif cuadrox == 0 and cuadroy == self.TAMANO-3 and self.tablero[0][self.TAMANO-2] == oponente:
 			self.listaComer.append((0,self.TAMANO-2))
 			b = True
-		elif cuadrox == self.TAMANO-1 and cuadroy == 2 and (self.tablero[self.TAMANO-1][1] == oponente[0] or self.tablero[self.TAMANO-1][1] == oponente[1]):
+		elif cuadrox == self.TAMANO-1 and cuadroy == 2 and self.tablero[self.TAMANO-1][1] == oponente:
 			self.listaComer.append((self.TAMANO-1,1))
 			b = True
-		elif cuadrox == self.TAMANO-1 and cuadroy == self.TAMANO-3 and (self.tablero[self.TAMANO-1][self.TAMANO-2] == oponente[0] or self.tablero[self.TAMANO-1][self.TAMANO-2] == oponente[1]):
+		elif cuadrox == self.TAMANO-1 and cuadroy == self.TAMANO-3 and self.tablero[self.TAMANO-1][self.TAMANO-2] == oponente:
 			self.listaComer.append((self.TAMANO-1,self.TAMANO-2))
 			b = True
-		elif cuadrox == 2 and cuadroy == 0 and (self.tablero[1][0] == oponente[0] or self.tablero[1][0] == oponente[1]):
+		elif cuadrox == 2 and cuadroy == 0 and self.tablero[1][0] == oponente:
 			self.listaComer.append((1,0))
 			b = True
-		elif cuadrox == self.TAMANO-3 and cuadroy == 0 and (self.tablero[self.TAMANO-2][0] == oponente[0] or self.tablero[self.TAMANO-2][0] == oponente[1]):
+		elif cuadrox == self.TAMANO-3 and cuadroy == 0 and self.tablero[self.TAMANO-2][0] == oponente:
 			self.listaComer.append((self.TAMANO-2,0))
 			b = True
-		elif cuadrox == 2 and cuadroy == self.TAMANO-1 and (self.tablero[1][self.TAMANO-1] == oponente[0] or self.tablero[1][self.TAMANO-1] == oponente[1]):
+		elif cuadrox == 2 and cuadroy == self.TAMANO-1 and self.tablero[1][self.TAMANO-1] == oponente:
 			self.listaComer.append((1,self.TAMANO-1))
 			b = True	
-		elif cuadrox == self.TAMANO-3 and cuadroy == self.TAMANO-1 and (self.tablero[self.TAMANO-2][self.TAMANO-1] == oponente[0] or self.tablero[self.TAMANO-2][self.TAMANO-1] == oponente[1]):
+		elif cuadrox == self.TAMANO-3 and cuadroy == self.TAMANO-1 and self.tablero[self.TAMANO-2][self.TAMANO-1] == oponente:
 			self.listaComer.append((self.TAMANO-2,self.TAMANO-1))
 			b = True
 			
 		# limites
 		if cuadrox > 1:
 			#busque arriba
-			if self.tablero[cuadrox-1][cuadroy] == oponente[0] or self.tablero[cuadrox-1][cuadroy] == oponente[1]:
-				if self.tablero[cuadrox-2][cuadroy] == aliado[0] or self.tablero[cuadrox-2][cuadroy] == aliado[1]:
+			if self.tablero[cuadrox-1][cuadroy] == oponente:
+				if self.tablero[cuadrox-2][cuadroy] == aliado:
 					self.listaComer.append((cuadrox-1, cuadroy))
 					b = True
 		if cuadroy > 1:		
 			# busque a la izquierda
-			if self.tablero[cuadrox][cuadroy-1] == oponente[0] or self.tablero[cuadrox][cuadroy-1] == oponente[1]:
-				if self.tablero[cuadrox][cuadroy-2] == aliado[0] or self.tablero[cuadrox][cuadroy-2] == aliado[1]:
+			if self.tablero[cuadrox][cuadroy-1] == oponente:
+				if self.tablero[cuadrox][cuadroy-2] == aliado:
 					self.listaComer.append((cuadrox,cuadroy-1))
 					b = True;
 		if cuadrox < self.TAMANO-3:
 			# busque abajo
-			if self.tablero[cuadrox+1][cuadroy] == oponente[0] or self.tablero[cuadrox+1][cuadroy] == oponente[1]:
-				if self.tablero[cuadrox+2][cuadroy] == aliado[0] or self.tablero[cuadrox+2][cuadroy] == aliado[1]:
+			if self.tablero[cuadrox+1][cuadroy] == oponente:
+				if self.tablero[cuadrox+2][cuadroy] == aliado:
 					self.listaComer.append((cuadrox+1,cuadroy))
 					b = True
 		if cuadroy < self.TAMANO-3:
 			# busque a la derecha
-			if self.tablero[cuadrox][cuadroy+1] == oponente[0] or self.tablero[cuadrox][cuadroy+1] == oponente[1]:
-				if self.tablero[cuadrox][cuadroy+2] == aliado[0] or self.tablero[cuadrox][cuadroy+2] == aliado[1]:
+			if self.tablero[cuadrox][cuadroy+1] == oponente:
+				if self.tablero[cuadrox][cuadroy+2] == aliado:
 					self.listaComer.append((cuadrox,cuadroy+1))
 					b = True;
 		return b;
@@ -538,7 +538,6 @@ class Calculos:
 	CENTRO = None
 	
 	camino = None
-	
 	
 	def __init__(self, config):
 		self.camino = []
