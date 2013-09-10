@@ -8,49 +8,41 @@ from copy import deepcopy
 ############################################### Clase Main ################################################
 #                       Maneja los eventos del mouse y el loop principal del juego                        #
 ###########################################################################################################
-class Main:
+class Main:	
 	
-	""" Lista de constantes respectivamente corresponden a largo y ancho de la ventana, cantidad de
-	cuadros del tablero nxn, coordenadas de las fichas blancas (x,y) y negras (x, y).
-	"""
-	CONSTANTES = (594, 594, 11,
-	(3,4,4,4,5,5,5,5,6,6,6,7),
-	(5,4,5,6,3,4,6,7,4,5,6,5),
-	(0,0,0,0,0,1,10,10,10,10,10,9,3,4,5,6,7,5,3,4,5,6,7,5),
-	(3,4,5,6,7,5,3,4,5,6,7,5,0,0,0,0,0,1,10,10,10,10,10,9))
-	LARGO_VENTANA = CONSTANTES[0]
-	ANCHO_VENTANA = CONSTANTES[1]
+	LARGO_VENTANA = None
+	ANCHO_VENTANA = None
+	
+	grafico = None
+	logico = None
+	jugador = None
 	
 	# velocidad promedio de cuadros por segundo
 	FPS = 24
 	
-	# constantes para controlar los turnos de juego
-	JUGADOR1 = "jugador1"
-	JUGADOR2 = "jugador2"
+	FPSCLOCK = None
+	SUPERFICIE = None
 	
-	def switchJugador(self, jugAct):
-		if jugAct == self.JUGADOR1:
-			return self.JUGADOR2
-		else:
-			return self.JUGADOR1
-	
-	def iniciar(self):
-		# iniciar el modulo pygame, el objeto FPS y la venatna
+	def __init__(self, config):
+		self.LARGO_VENTANA = config["LARGO_VENTANA"]
+		self.ANCHO_VENTANA = config["ANCHO_VENTANA"]
+		
+		# iniciar el modulo pygame, el objeto FPS y la ventana
 		pygame.init()
-		FPSCLOCK = pygame.time.Clock()
-		SUPERFICIE = pygame.display.set_mode((self.LARGO_VENTANA, self.ANCHO_VENTANA))
+		self.FPSCLOCK = pygame.time.Clock()
+		self.SUPERFICIE = pygame.display.set_mode((self.LARGO_VENTANA, self.ANCHO_VENTANA))
 		pygame.display.set_caption('Ajedrez Vikingo')
 		
 		# instancia de clases 
-		logico = Logico(self.CONSTANTES)
-		grafico = Grafico(logico, SUPERFICIE, self.CONSTANTES)
-		
+		self.jugador = Jugador()
+		self.logico = Logico(self.jugador, config)
+		self.grafico = Grafico(self.logico, self.SUPERFICIE, config)
+	
+	def iniciar(self):
+	
 		# almacenan las coordenadas del mouse
 		mousex = 0 
 		mousey = 0 
-		
-		# controla el jugador de turno
-		jugadorActual = self.JUGADOR1
 		
 		# boolean para saber si hay alguna ficha seleccionada
 		seleccion = False
@@ -63,10 +55,10 @@ class Main:
 			mouseClic = False
 			
 			if seleccion:
-				grafico.dibujarTablero()
-				grafico.dibujarCaminoIluminado(None, None)
+				self.grafico.dibujarTablero()
+				self.grafico.dibujarCaminoIluminado(None, None)
 			else:
-				grafico.dibujarTablero()
+				self.grafico.dibujarTablero()
 			
 			for evento in pygame.event.get():
 				if evento.type == QUIT or (evento.type == KEYUP and evento.key == K_ESCAPE):
@@ -79,35 +71,35 @@ class Main:
 					mouseClic = True	
 					
 			# comprobar si el mouse esta actualmente en un cuadro
-			cuadrox, cuadroy = grafico.getCuadroEnPixel(mousex, mousey)					
+			cuadrox, cuadroy = self.grafico.getCuadroEnPixel(mousex, mousey)					
 			
 			if cuadrox != None and cuadroy != None and not mouseClic:
-				if logico.hayFichaJugador(cuadrox, cuadroy, jugadorActual):
+				if self.logico.hayFichaJugador(cuadrox, cuadroy):
 					# el mouse esta sobre un cuadro
-					grafico.dibujarCuadroIluminado(cuadrox, cuadroy)
-				elif logico.estaEnCamino(cuadrox, cuadroy) and seleccion:
+					self.grafico.dibujarCuadroIluminado(cuadrox, cuadroy)
+				elif self.logico.estaEnCamino(cuadrox, cuadroy) and seleccion:
 					# el mouse esta sobre un cuadro del camino de la ficha
-					grafico.dibujarCuadroIluminado(cuadrox, cuadroy, fichaSeleccion)
+					self.grafico.dibujarCuadroIluminado(cuadrox, cuadroy, fichaSeleccion)
 					# si esa posible jugada puede comer alguna ficha
-					if logico.hayQueComer(cuadrox, cuadroy, jugadorActual):
-						grafico.dibujarAlertaComer()
+					if self.logico.hayQueComer(cuadrox, cuadroy):
+						self.grafico.dibujarAlertaComer()
 					
 			elif cuadrox != None and cuadroy != None and mouseClic:			
-				if logico.hayFichaJugador(cuadrox, cuadroy, jugadorActual):
+				if self.logico.hayFichaJugador(cuadrox, cuadroy):
 					# mouse hizo clic sobre alguna ficha de turno
-					logico.setCamino(cuadrox, cuadroy)
-					grafico.dibujarCaminoIluminado(cuadrox, cuadroy)
+					self.logico.setCamino(cuadrox, cuadroy)
+					self.grafico.dibujarCaminoIluminado(cuadrox, cuadroy)
 					seleccion = True
 					fichaSeleccion = (cuadrox, cuadroy)
 					
-				elif logico.estaEnCamino(cuadrox, cuadroy) and seleccion:
+				elif self.logico.estaEnCamino(cuadrox, cuadroy) and seleccion:
 					# mouse hizo clic en una posicion del camino
-					logico.mover(fichaSeleccion[0], fichaSeleccion[1], cuadrox, cuadroy, jugadorActual)
+					self.logico.mover(fichaSeleccion[0], fichaSeleccion[1], cuadrox, cuadroy)
 					seleccion = False
-					jugadorActual = self.switchJugador(jugadorActual)
+					self.jugador.switchJugador()
 			
 			pygame.display.update()	
-			FPSCLOCK.tick(self.FPS)	
+			self.FPSCLOCK.tick(self.FPS)	
 	
 #############################################  Clase Grafico ##############################################
 #                  Pinta la ventana conforme los datos proporcionados por la clase Logico                 # 
@@ -138,12 +130,12 @@ class Grafico:
 	logico = None
 	
 	
-	def __init__(self, logico, superficie, constantes):
+	def __init__(self, logico, superficie, config):
 		self.logico = logico
 		self.SUPERFICIE = superficie
-		self.LARGO_VENTANA = constantes[0]
-		self.ANCHO_VENTANA = constantes[1]
-		self.TAMANO = constantes[2]
+		self.LARGO_VENTANA = config["LARGO_VENTANA"]
+		self.ANCHO_VENTANA = config["ANCHO_VENTANA"]
+		self.TAMANO = config["TAMANO"]
 		self.CENTRO = (self.TAMANO-1) / 2
 		self.LARGO_CUADRO =  self.LARGO_VENTANA / self.TAMANO
 		self.ANCHO_CUADRO =  self.ANCHO_VENTANA / self.TAMANO
@@ -155,10 +147,10 @@ class Grafico:
 			self.IMAGENES[i] = pygame.image.load(os.path.join(self.RUTA, self.CARPETA, self.DIRECCION[i]))	
 		self.IMAGENES = tuple(self.IMAGENES)
 		
-		self.POSBX = constantes[3]
-		self.POSBY = constantes[4]
-		self.POSNX = constantes[5]
-		self.POSNY = constantes[6]
+		self.POSBX = config["POSBX"]
+		self.POSBY = config["POSBY"]
+		self.POSNX = config["POSNX"]
+		self.POSNY = config["POSNY"]
 		
 		
 	""" Convierte las coordenadas de la esquina superior izquierda del cuadro 
@@ -277,14 +269,15 @@ class Logico:
 	COLOR_ALERTA = (248,  55,  47)
 	
 	# almacenaran las instancias de clase
+	jugador = None
 	tablero = None
 	calculos = None
 	
-	def __init__(self, constantes):
-		self.tablero = Tablero(constantes)
-		self.calculos = Calculos(constantes[2])
+	def __init__(self, jug, config):
+		self.jugador = jug
+		self.tablero = Tablero(jug, config)
+		self.calculos = Calculos(config)
 		self.crearTablero()
-		
 		
 	# Operaciones que interactuan con la clase Tablero #
 	
@@ -304,14 +297,14 @@ class Logico:
 
 		
 	""" Devuelve True si el cuadro indicado coresponde a una ficha de turno. """
-	def hayFichaJugador(self, cuadrox, cuadroy, jugadorActual):
-		return self.tablero.hayFichaJugador(cuadrox, cuadroy, jugadorActual)
+	def hayFichaJugador(self, cuadrox, cuadroy):
+		return self.tablero.hayFichaJugador(cuadrox, cuadroy)
 		
 	""" Calcula si hay posibles fichas para comer dada una determinada posición
 	devuelve True si hay al menos una.
 	"""
-	def hayQueComer(self, cuadrox, cuadroy, jugAct):
-		return self.tablero.comerFicha(cuadrox, cuadroy, jugAct)
+	def hayQueComer(self, cuadrox, cuadroy):
+		return self.tablero.comerFicha(cuadrox, cuadroy)
 	
 	
 	""" Devuelve la lista con las posiciones para comer. """
@@ -320,9 +313,9 @@ class Logico:
 	
 	
 	""" Mueve una ficha del tablero y busca si hay fichas para comer. """
-	def mover(self, cx, cy, cnx, cny, jugAct):
+	def mover(self, cx, cy, cnx, cny):
 		self.tablero.setFicha(cx, cy, cnx, cny)
-		if self.tablero.comerFicha(cnx, cny, jugAct):
+		if self.tablero.comerFicha(cnx, cny):
 			for cuadro in self.getComer():
 				self.tablero.setFicha(cuadro[0], cuadro[1])
 		self.calculos.verificarLimites(self.getCopiaTablero())
@@ -398,21 +391,21 @@ class Tablero:
 	POSBY = None
 	POSNX = None
 	POSNY = None
-	
-	JUGADOR1 = "jugador1"
-	JUGADOR2 = "jugador2"
 
 	tablero = None
 	listaComer = None
 	
-	def __init__(self, constantes):
-		self.TAMANO = constantes[2]
+	jugador = None
+	
+	def __init__(self, jug, config):
+		self.jugador = jug
+		self.TAMANO = config["TAMANO"]
 		self.CENTRO = (self.TAMANO-1) / 2
 		
-		self.POSBX = constantes[3]
-		self.POSBY = constantes[4]
-		self.POSNX = constantes[5]
-		self.POSNY = constantes[6]
+		self.POSBX = config["POSBX"]
+		self.POSBY = config["POSBY"]
+		self.POSNX = config["POSNX"]
+		self.POSNY = config["POSNY"]
 	
 	""" Crea una matriz que representa la lógica del tablero """	
 	def crearTablero(self):
@@ -452,8 +445,8 @@ class Tablero:
 
 		
 	""" Devuelve True si el cuadro indicado coresponde a una ficha de turno. """
-	def hayFichaJugador(self, cuadrox, cuadroy, jugadorActual):
-		if jugadorActual == self.JUGADOR1:
+	def hayFichaJugador(self, cuadrox, cuadroy):
+		if self.jugador.getJugador() == "jugador1":
 			if self.tablero[cuadrox][cuadroy] == "moscovita":
 				return True
 			else:
@@ -468,12 +461,12 @@ class Tablero:
 	""" Calcula si hay posibles fichas para comer dada una determinada posición
 	devuelve True si hay al menos una.
 	"""		
-	def comerFicha(self, cuadrox, cuadroy, jugAct):
+	def comerFicha(self, cuadrox, cuadroy):
 		self.listaComer = []
-		if jugAct == self.JUGADOR1:
+		if self.jugador.getJugador() == "jugador1":
 			oponente = ("sueco", "rey")
 			aliado = ("moscovita", "moscovita")
-		elif jugAct == self.JUGADOR2:
+		else:
 			oponente = ("moscovita", "moscovita")
 			aliado = ("rey", "sueco")
 			
@@ -506,33 +499,36 @@ class Tablero:
 			b = True
 			
 		# limites
-		if self.tablero[cuadrox-1][cuadroy] == oponente[0] or self.tablero[cuadrox-1][cuadroy] == oponente[1]:
+		if cuadrox > 1:
 			#busque arriba
-			if self.tablero[cuadrox-2][cuadroy] == aliado[0] or self.tablero[cuadrox-2][cuadroy] == aliado[1]:
-				self.listaComer.append((cuadrox-1, cuadroy))
-				b = True
-		# busque a la izquierda
-		if self.tablero[cuadrox][cuadroy-1] == oponente[0] or self.tablero[cuadrox][cuadroy-1] == oponente[1]:
-			if self.tablero[cuadrox][cuadroy-2] == aliado[0] or self.tablero[cuadrox][cuadroy-2] == aliado[1]:
-				self.listaComer.append((cuadrox,cuadroy-1))
-				b = True;
-		# busque abajo
-		if self.tablero[cuadrox+1][cuadroy] == oponente[0] or self.tablero[cuadrox+1][cuadroy] == oponente[1]:
-			if self.tablero[cuadrox+2][cuadroy] == aliado[0] or self.tablero[cuadrox+2][cuadroy] == aliado[1]:
-				self.listaComer.append((cuadrox+1,cuadroy))
-				b = True
-		# busque a la derecha
-		if self.tablero[cuadrox][cuadroy+1] == oponente[0] or self.tablero[cuadrox][cuadroy+1] == oponente[1]:
-			if self.tablero[cuadrox][cuadroy+2] == aliado[0] or self.tablero[cuadrox][cuadroy+2] == aliado[1]:
-				self.listaComer.append((cuadrox,cuadroy+1))
-				b = True;
+			if self.tablero[cuadrox-1][cuadroy] == oponente[0] or self.tablero[cuadrox-1][cuadroy] == oponente[1]:
+				if self.tablero[cuadrox-2][cuadroy] == aliado[0] or self.tablero[cuadrox-2][cuadroy] == aliado[1]:
+					self.listaComer.append((cuadrox-1, cuadroy))
+					b = True
+		if cuadroy > 1:		
+			# busque a la izquierda
+			if self.tablero[cuadrox][cuadroy-1] == oponente[0] or self.tablero[cuadrox][cuadroy-1] == oponente[1]:
+				if self.tablero[cuadrox][cuadroy-2] == aliado[0] or self.tablero[cuadrox][cuadroy-2] == aliado[1]:
+					self.listaComer.append((cuadrox,cuadroy-1))
+					b = True;
+		if cuadrox < self.TAMANO-3:
+			# busque abajo
+			if self.tablero[cuadrox+1][cuadroy] == oponente[0] or self.tablero[cuadrox+1][cuadroy] == oponente[1]:
+				if self.tablero[cuadrox+2][cuadroy] == aliado[0] or self.tablero[cuadrox+2][cuadroy] == aliado[1]:
+					self.listaComer.append((cuadrox+1,cuadroy))
+					b = True
+		if cuadroy < self.TAMANO-3:
+			# busque a la derecha
+			if self.tablero[cuadrox][cuadroy+1] == oponente[0] or self.tablero[cuadrox][cuadroy+1] == oponente[1]:
+				if self.tablero[cuadrox][cuadroy+2] == aliado[0] or self.tablero[cuadrox][cuadroy+2] == aliado[1]:
+					self.listaComer.append((cuadrox,cuadroy+1))
+					b = True;
 		return b;
 		
 		
 	""" Devuelve la lista con las posiciones para comer. """		
 	def getComer(self):
-		return self.listaComer
-	
+		return self.listaComer	
 	
 ########################################### Clase Calculos ################################################	
 #                         Realiza los calculos necesarios conforme al tablero                             #
@@ -544,10 +540,10 @@ class Calculos:
 	camino = None
 	
 	
-	def __init__(self, tamano):
+	def __init__(self, config):
 		self.camino = []
-		self.TAMANO = tamano
-		self.CENTRO = (tamano-1) / 2
+		self.TAMANO = config["TAMANO"]
+		self.CENTRO = (self.TAMANO-1) / 2
 		
 		
 	#   Operaciones para el calculo del camino de una ficha    #
@@ -664,11 +660,31 @@ class Calculos:
 				
 		print(limitesRey)
 	
+########################################### Clase Jugador #################################################	
+#                    Por ahora, mantiene la informacion sobre el jugador de turno                         #
+###########################################################################################################	
+class Jugador:
+
+	jugador1 = "jugador1"
+	jugador2 = "jugador2"
+	
+	jugadorActual = None
+	
+	def __init__(self):
+		self.jugadorActual = self.jugador1
+		
+	def switchJugador(self):
+		if self.jugadorActual == self.jugador1:
+			self.jugadorActual = self.jugador2
+		else:
+			self.jugadorActual = self.jugador1
+			
+	def getJugador(self):
+		return self.jugadorActual
+		
 	
 if __name__ == '__main__':
 	config = {}
 	execfile("settings.config", config) 
-	print config["value1"]
-	print config["value5"]
-	main = Main()
+	main = Main(config)
 	main.iniciar()
