@@ -611,13 +611,30 @@ class Calculos:
 				if copiaTablero[i][j] == "rey":
 					return (i, j)
 	
+	""" Verifica el estado actual del rey. """
+	def estadoRey(self, copiaTablero):
+		if self.verificarEsquinas(copiaTablero):
+			# El rey ha llegado a una esquina
+			return 1
+		else
+			encasillado = self.verificarLimites(copiaTablero)
+			if encasillado == 4:
+				# El rey ha sido encasillado, jaquemate
+				return 2
+			elif encasillado == 3:
+				# El rey esta en jaque
+				return 3
+				# Aqui verifiar si el rey tiene una escapatoria
+				
+			
+	
 	
 	def verificarEsquinas(self, copiaTablero):
 		tablero = copiaTablero
 		if tablero[0][0] == "rey" or tablero[0][TAMANO-1] == "rey" or tablero[TAMANO-1][0] == "rey" or tablero[TAMANO-1][TAMANO-1] == "rey":
 			return True
 		else:
-			return False			
+			return False	
 
 	
 	def verificarLimites(self, copiaTablero):
