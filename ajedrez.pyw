@@ -13,9 +13,11 @@ class Main:
 	LARGO_VENTANA = None
 	ANCHO_VENTANA = None
 	
+	jugador = None
+	tablero = None
+	calculos = None
 	grafico = None
 	logico = None
-	jugador = None
 	
 	# velocidad promedio de cuadros por segundo
 	FPS = 24
@@ -35,8 +37,11 @@ class Main:
 		
 		# instancia de clases 
 		self.jugador = Jugador()
-		self.logico = Logico(self.jugador, config)
+		self.tablero = Tablero(self.jugador, config)
+		self.calculos = Calculos(config)
+		self.logico = Logico(self.jugador, self.tablero, self.calculos, config)
 		self.grafico = Grafico(self.logico, self.SUPERFICIE, config)
+		
 	
 	def iniciar(self):
 	
@@ -47,6 +52,9 @@ class Main:
 		# boolean para saber si hay alguna ficha seleccionada
 		seleccion = False
 		
+		jaque = False
+		peligro = False
+		
 		# sirve para almacenar la posicion de la ficha seleccionada por el clic
 		fichaSeleccion = ""
 		
@@ -54,11 +62,14 @@ class Main:
 		
 			mouseClic = False
 			
+			self.grafico.dibujarTablero()
+			if jaque:
+				self.grafico.dibujarAlerta(self.calculos.getEsquinas(), "verde")
+			if peligro:
+				self.grafico.dibujarAlerta(self.calculos.getPeligroRey(), "roja")
 			if seleccion:
-				self.grafico.dibujarTablero()
 				self.grafico.dibujarCaminoIluminado(None, None)
-			else:
-				self.grafico.dibujarTablero()
+				
 			
 			for evento in pygame.event.get():
 				if evento.type == QUIT or (evento.type == KEYUP and evento.key == K_ESCAPE):
@@ -82,7 +93,7 @@ class Main:
 					self.grafico.dibujarCuadroIluminado(cuadrox, cuadroy, fichaSeleccion)
 					# si esa posible jugada puede comer alguna ficha
 					if self.logico.hayQueComer(cuadrox, cuadroy):
-						self.grafico.dibujarAlertaComer()
+						self.grafico.dibujarAlerta(self.logico.getComer(), "roja")
 					
 			elif cuadrox != None and cuadroy != None and mouseClic:			
 				if self.logico.hayFichaJugador(cuadrox, cuadroy):
@@ -97,6 +108,33 @@ class Main:
 					self.logico.mover(fichaSeleccion[0], fichaSeleccion[1], cuadrox, cuadroy)
 					seleccion = False
 					self.jugador.switchJugador()
+			
+					# estado del juego sin terminar
+					copiaTablero = self.logico.getCopiaTablero()
+					if self.calculos.verificarEsquinas(copiaTablero):
+						# El rey ha llegado a una esquina
+						print("El rey salio, las blancos han ganado.")
+					else:
+						encasillado = self.calculos.verificarLimites(copiaTablero)
+						if encasillado == 4:
+							# El rey ha sido encasillado, jaquemate
+							print("El rey ha sido capturado, los negros ganan.")
+						else:
+							if encasillado == 3:
+								# El rey puede estar en peligro
+								if self.calculos.verificarPeligro(copiaTablero):
+									# el rey esta en peligro
+									self.grafico.dibujarAlerta(self.calculos.getPeligroRey(), "roja")
+									peligro = True
+							else:
+								peligro = False
+							
+							if self.calculos.buscarEsquinaRey(copiaTablero):
+								# hay una situacion de jaque o jaque mate
+								self.grafico.dibujarAlerta(self.calculos.getEsquinas(), "verde")	
+								jaque = True
+							else:
+								jaque = False
 			
 			pygame.display.update()	
 			self.FPSCLOCK.tick(self.FPS)	
@@ -220,10 +258,10 @@ class Grafico:
 					
 
 	""" Vuelve a dibujar el cuadro señalado por los parámetros pero de un color más claro. """
-	def dibujarCuadroIluminado(self, cuadrox, cuadroy, fichaEncima=(), alerta=False):
+	def dibujarCuadroIluminado(self, cuadrox, cuadroy, fichaEncima=(), alerta=""):
 		arriba, izquierda = self.coordEsquinaCuadro(cuadrox, cuadroy)
-		if alerta:
-			pygame.draw.rect(self.SUPERFICIE, self.logico.getColorAlerta(), 
+		if alerta != "":
+			pygame.draw.rect(self.SUPERFICIE, self.logico.getColorAlerta(alerta), 
 				(arriba, izquierda, self.LARGO_CUADRO, self.ANCHO_CUADRO))
 		else:
 			pygame.draw.rect(self.SUPERFICIE, self.logico.getColorIluminado(cuadrox, cuadroy), 
@@ -246,9 +284,9 @@ class Grafico:
 	""" Dibuja un color de alerta en los cuadros indicados por 
 	la lista retornada por logico.getComer().
 	"""
-	def dibujarAlertaComer(self):
-		for cuadro in self.logico.getComer():
-			self.dibujarCuadroIluminado(cuadro[0], cuadro[1], (), True)
+	def dibujarAlerta(self, listaCuadros, alerta):
+		for cuadro in listaCuadros:
+			self.dibujarCuadroIluminado(cuadro[0], cuadro[1], (), alerta)
 	
 		
 	""" Dibuja los cuadros y las fichas del tablero. """	
@@ -261,22 +299,23 @@ class Grafico:
 #         Maneja los datos y la lógica del juego, formada por las clases Tablero y Calculos               #
 ###########################################################################################################	
 class Logico:
-    #                R    G    B
-	COLOR1 =       ( 80,  48,  34)
-	COLOR2 =       (203, 173, 112)
-	COLOR_CLARO1 = (140, 108,  94)
-	COLOR_CLARO2 = (255, 233, 172)
-	COLOR_ALERTA = (248,  55,  47)
+    #                      R    G    B
+	COLOR1             = ( 80,  48,  34)
+	COLOR2             = (203, 173, 112)
+	COLOR_CLARO1       = (140, 108,  94)
+	COLOR_CLARO2       = (255, 233, 172)
+	COLOR_ALERTA_ROJA  = (248,  55,  47)
+	COLOR_ALERTA_VERDE = ( 55, 200,  47)
 	
 	# almacenaran las instancias de clase
 	jugador = None
 	tablero = None
 	calculos = None
 	
-	def __init__(self, jug, config):
+	def __init__(self, jug, tabl, calc, config):
 		self.jugador = jug
-		self.tablero = Tablero(jug, config)
-		self.calculos = Calculos(config)
+		self.tablero = tabl
+		self.calculos = calc
 		self.crearTablero()
 		
 	# Operaciones que interactuan con la clase Tablero #
@@ -317,9 +356,7 @@ class Logico:
 		self.tablero.setFicha(cx, cy, cnx, cny)
 		if self.tablero.comerFicha(cnx, cny):
 			for cuadro in self.getComer():
-				self.tablero.setFicha(cuadro[0], cuadro[1])
-		print("Peligro para negros: " + str(self.calculos.buscarEsquinaRey(self.getCopiaTablero())))
-	
+				self.tablero.setFicha(cuadro[0], cuadro[1])	
 	
 		# Operaciones que interactúan con la clase Calculos #
 	
@@ -376,8 +413,11 @@ class Logico:
 		
 		
 	""" Devuelve el color de alerta. """	
-	def getColorAlerta(self):
-		return self.COLOR_ALERTA
+	def getColorAlerta(self, alerta):
+		if alerta == "roja":
+			return self.COLOR_ALERTA_ROJA
+		elif alerta == "verde":
+			return self.COLOR_ALERTA_VERDE
 
 ########################################### Clase Tablero #################################################	
 #                        Maneja la representación y los cambios del tablero de juego.                     #
@@ -540,6 +580,8 @@ class Calculos:
 	
 	camino = None
 	esquinas = None
+	limitesRey = None
+	peligroRey = None
 	
 	def __init__(self, config):
 		self.camino = []
@@ -555,6 +597,7 @@ class Calculos:
 			return True
 		else:
 			return False
+			
 			
 	""" Si el cuadro indicado esta dentro de la lista de camino, True """
 	def estaEnCamino(self, cuadrox, cuadroy):
@@ -607,7 +650,7 @@ class Calculos:
 		return self.camino
 
 		
-	#       Operaciones para calcular el estado del rey.     # 
+	"""       Operaciones para calcular el estado del rey.     """ 
 		
 	""" Buscan en el tablero la ficha del rey y devuelve su posicion. """
 	def buscarRey(self, copiaTablero):
@@ -616,7 +659,185 @@ class Calculos:
 				if copiaTablero[i][j] == "rey":
 					return (i, j)
 	
-	
+			
+	""" Determina si el rey ha llegado a alguna esquina del tablero """		
+	def verificarEsquinas(self, copiaTablero):
+		tablero = copiaTablero
+		if tablero[0][0] == "rey" or tablero[0][self.TAMANO-1] == "rey" or tablero[self.TAMANO-1][0] == "rey" or tablero[self.TAMANO-1][self.TAMANO-1] == "rey":
+			return True
+		else:
+			return False
+			
+			
+	""" Crea una tupla que representa los limites del rey para determinar 
+	si este esta encasillado.
+	"""
+	def verificarLimites(self, copiaTablero):
+		tablero = copiaTablero
+		posRey = self.buscarRey(tablero)
+		
+		# derecha, izquierda, arriba, abajo
+		self.limitesRey = [0, 0, 0, 0]
+		
+		# esquinas
+		if posRey == (0, self.TAMANO-2) or posRey == (self.TAMANO-1, self.TAMANO-2):
+			self.limitesRey[0] = 1
+		elif posRey == (0, 1) or posRey == (self.TAMANO-1, 1):		
+			self.limitesRey[1] = 1
+		elif posRey == (1, 0) or posRey == (1, self.TAMANO-1):
+			self.limitesRey[2] = 1
+		elif posRey == (self.TAMANO-2, 0) or posRey == (self.TAMANO-2, self.TAMANO-1):
+			self.limitesRey[3] = 1	
+			
+		limites = ( 
+		(0, posRey[1], self.TAMANO-1, (self.CENTRO, self.CENTRO-1), posRey[0], posRey[1]+1, posRey[0], posRey[1]+2),
+		(1, posRey[1], 0, (self.CENTRO, self.CENTRO+1), posRey[0], posRey[1]-1, posRey[0], posRey[1]-2),
+		(2, posRey[0], 0, (self.CENTRO+1, self.CENTRO), posRey[0]-1, posRey[1], posRey[0]-2, posRey[1]),
+		(3, posRey[0], self.TAMANO-1, (self.CENTRO-1, self.CENTRO), posRey[0]+1, posRey[1], posRey[0]+2, posRey[1]) )
+		
+		for lim in limites:
+			if lim[1] == lim[2]:
+				# esta en una orilla
+				self.limitesRey[lim[0]] = 1
+			elif posRey == lim[3]:
+				# esta al lado del centro del tablero
+				self.limitesRey[lim[0]] = 1
+			elif tablero[lim[4]][lim[5]] == "sueco" and tablero[lim[6]][lim[7]] == "moscovita":
+				# tiene una ficha blanca seguida de una negra a la par
+				self.limitesRey[lim[0]] = 1
+			elif tablero[lim[4]][lim[5]] == "moscovita":
+				# tiene una ficha negra a la par 
+				self.limitesRey[lim[0]] = 1
+				
+		print(self.limitesRey)
+		# sumatoria para control
+		return self.limitesRey[0] + self.limitesRey[1] + self.limitesRey[2] + self.limitesRey[3]
+
+
+	""" Determina si hay peligro en el unico limite libre de rey """	
+	def verificarPeligro(self, copiaTablero):
+		posRey = self.buscarRey(copiaTablero)
+		self.peligroRey = []
+		limite = -1
+		for i in range(4):
+			if self.limitesRey[i] == 0:
+				limite = i
+		
+		if limite == 0:
+			# derecha
+			x = posRey[0]
+			y = posRey[1]+1
+			
+			control = x
+			while control >= 0 and copiaTablero[control][y] != "sueco":
+				if copiaTablero[control][y] == "moscovita":
+					self.peligroRey.append( (control, y) ) 
+					control = 0 # truco malvado para parar el while con el primer negro que encuentre
+				control -= 1
+		
+			control = x
+			while control <= self.TAMANO-1 and copiaTablero[control][y] != "sueco":
+				if copiaTablero[control][y] == "moscovita":
+					self.peligroRey.append( (control, y) )
+					control = self.TAMANO-1
+				control += 1
+			
+			control = y
+			while control <= self.TAMANO-1 and copiaTablero[x][control] != "sueco":
+				if copiaTablero[x][control] == "moscovita":
+					self.peligroRey.append( (x, control) )
+					control = self.TAMANO-1
+				control += 1
+
+		if limite == 1:
+			# izquierda
+			x = posRey[0]
+			y = posRey[1]-1
+			
+			control = y
+			while control >= 0 and copiaTablero[x][control] != "sueco":
+				if copiaTablero[x][control] == "moscovita":
+					self.peligroRey.append( (x, control) )
+					control = 0
+				control -= 1
+
+			control = x
+			while control >= 0 and copiaTablero[control][y] != "sueco":
+				if copiaTablero[control][y] == "moscovita":
+					self.peligroRey.append( (control, y) )
+					control = 0
+				control -= 1
+				
+			control = x
+			while control <= self.TAMANO-1 and copiaTablero[control][y] != "sueco":
+				if copiaTablero[control][y] == "moscovita":
+					self.peligroRey.append( (control, y) )
+					control = self.TAMANO-1
+				control += 1
+			
+		if limite == 2:
+			# arriba
+			x = posRey[0]-1
+			y = posRey[1]
+			
+			control = y
+			while control >= 0 and copiaTablero[x][control] != "sueco":
+				if copiaTablero[x][control] == "moscovita":
+					self.peligroRey.append( (x, control) )
+					control = 0
+				control -= 1
+				
+			control = x
+			while control >= 0 and copiaTablero[control][y] != "sueco":
+				if copiaTablero[control][y] == "moscovita":
+					self.peligroRey.append( (control, y) )
+					control = 0
+				control -= 1
+				
+			control = y
+			while control <= self.TAMANO-1 and copiaTablero[x][control] != "sueco":
+				if copiaTablero[x][control] == "moscovita":
+					self.peligroRey.append( (x, control) )
+					control = self.TAMANO-1
+				control += 1
+
+		if limite == 3:
+			#abajo
+			x = posRey[0]+1
+			y = posRey[1]
+			
+			control = y
+			while control >= 0 and copiaTablero[x][control] != "sueco":
+				if copiaTablero[x][control] == "moscovita":
+					self.peligroRey.append( (x, control) )
+					control = 0
+				control -= 1
+				
+			control = x
+			while control <= self.TAMANO-1 and copiaTablero[control][y] != "sueco":
+				if copiaTablero[control][y] == "moscovita":
+					self.peligroRey.append( (control, y) )
+					control = self.TAMANO-1
+				control += 1
+				
+			control = y
+			while control <= self.TAMANO-1 and copiaTablero[x][control] != "sueco":
+				if copiaTablero[x][control] == "moscovita":
+					self.peligroRey.append( (x, control) )
+					control = self.TAMANO-1
+				control += 1
+				
+		if self.peligroRey != []:
+			return True
+		else:
+			return False
+				
+				
+	""" Devuelve la lista con las fichas a iluminar """	
+	def getPeligroRey(self):
+		return self.peligroRey
+		
+		
 	""" Determina si en el camino del rey esta alguna esquina. """
 	def buscarEsquinaRey(self, copiaTablero):
 		rey = self.buscarRey(copiaTablero)
@@ -658,75 +879,11 @@ class Calculos:
 			# si hay al menos una esquina alcanzable
 			return True
 		else:
-			return False
-	
-	
-	""" Verifica el estado actual del rey. """ # sin terminar
-	def estadoRey(self, copiaTablero):
-		if self.verificarEsquinas(copiaTablero):
-			# El rey ha llegado a una esquina
-			return 1
-		else:
-			encasillado = self.verificarLimites(copiaTablero)
-			if encasillado == 4:
-				# El rey ha sido encasillado, jaquemate
-				return 2
-			elif encasillado == 3:
-				# El rey esta en jaque
-				return 3
-				# Aqui verifiar si el rey tiene una escapatoria
-				
-
-				
-	def verificarEsquinas(self, copiaTablero):
-		tablero = copiaTablero
-		if tablero[0][0] == "rey" or tablero[0][TAMANO-1] == "rey" or tablero[TAMANO-1][0] == "rey" or tablero[TAMANO-1][TAMANO-1] == "rey":
-			return True
-		else:
 			return False	
-
-			
-	""" Crea una tupla que representa los limites del rey para determinar 
-	si este esta encasillado.
-	"""
-	def verificarLimites(self, copiaTablero):
-		tablero = copiaTablero
-		posRey = self.buscarRey(tablero)
-		
-		# derecha, izquierda, arriba, abajo
-		limitesRey = [0, 0, 0, 0]
-		
-		# esquinas
-		if posRey == (0, self.TAMANO-2) or posRey == (self.TAMANO-1, self.TAMANO-2):
-			limitesRey[0] = 1
-		elif posRey == (0, 1) or posRey == (self.TAMANO-1, 1):		
-			limitesRey[1] = 1
-		elif posRey == (1, 0) or posRey == (1, self.TAMANO-1):
-			limitesRey[2] = 1
-		elif posRey == (self.TAMANO-2, 0) or posRey == (self.TAMANO-2, self.TAMANO-1):
-			limitesRey[3] = 1	
-			
-		limites = ( 
-		(0, posRey[1], self.TAMANO-1, (self.CENTRO, self.CENTRO-1), posRey[0], posRey[1]+1, posRey[0], posRey[1]+2),
-		(1, posRey[1], 0, (self.CENTRO, self.CENTRO+1), posRey[0], posRey[1]-1, posRey[0], posRey[1]-2),
-		(2, posRey[0], 0, (self.CENTRO+1, self.CENTRO), posRey[0]-1, posRey[1], posRey[0]-2, posRey[1]),
-		(3, posRey[0], self.TAMANO-1, (self.CENTRO-1, self.CENTRO), posRey[0]+1, posRey[1], posRey[0]+2, posRey[1]) )
-		
-		for lim in limites:
-			if lim[1] == lim[2]:
-				# esta en una orilla
-				limitesRey[lim[0]] = 1
-			elif posRey == lim[3]:
-				# esta al lado del centro del tablero
-				limitesRey[lim[0]] = 1
-			elif tablero[lim[4]][lim[5]] == "sueco" and tablero[lim[6]][lim[7]] == "moscovita":
-				# tiene una ficha blanca seguida de una negra a la par
-				limitesRey[lim[0]] = 1
-			elif tablero[lim[4]][lim[5]] == "moscovita":
-				# tiene una ficha negra a la par 
-				limitesRey[lim[0]] = 1
-				
-		print(limitesRey)
+	
+	""" Devuelve una lista con las esquinas alcanzables por el rey """
+	def getEsquinas(self):
+		return self.esquinas
 	
 ########################################### Clase Jugador #################################################	
 #                    Por ahora, mantiene la informacion sobre el jugador de turno                         #
