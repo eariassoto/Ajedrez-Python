@@ -318,7 +318,7 @@ class Logico:
 		if self.tablero.comerFicha(cnx, cny):
 			for cuadro in self.getComer():
 				self.tablero.setFicha(cuadro[0], cuadro[1])
-		self.calculos.verificarLimites(self.getCopiaTablero())
+		print("Peligro para negros: " + str(self.calculos.buscarEsquinaRey(self.getCopiaTablero())))
 	
 	
 		# Operaciones que interactúan con la clase Calculos #
@@ -430,6 +430,7 @@ class Tablero:
 	def getCopiaTablero(self):
 		return deepcopy(self.tablero)
 
+		
 	""" Mueve una posicion del tablero a otra, dejando la primera en blanco. """	
 	def setFicha(self, cuadrox, cuadroy, cnx=None, cny=None):
 		if cnx == None:
@@ -538,6 +539,7 @@ class Calculos:
 	CENTRO = None
 	
 	camino = None
+	esquinas = None
 	
 	def __init__(self, config):
 		self.camino = []
@@ -594,6 +596,8 @@ class Calculos:
 			c-=1
 			
 		if copiaTablero[cuadrox][cuadroy] != "rey":
+			# Si la ficha no es la del rey hay que eliminar como posible lugar para 
+			# mover al centro y las esquinas
 			if (0,0) in self.camino: self.camino.remove((0,0))	
 			if (self.CENTRO, self.CENTRO) in self.camino: self.camino.remove((self.CENTRO, self.CENTRO))	
 			if (0, self.TAMANO-1) in self.camino: self.camino.remove((0, self.TAMANO-1))	
@@ -605,18 +609,64 @@ class Calculos:
 		
 	#       Operaciones para calcular el estado del rey.     # 
 		
+	""" Buscan en el tablero la ficha del rey y devuelve su posicion. """
 	def buscarRey(self, copiaTablero):
 		for i in range(self.TAMANO):
 			for j in range(self.TAMANO):
 				if copiaTablero[i][j] == "rey":
 					return (i, j)
 	
-	""" Verifica el estado actual del rey. """
+	
+	""" Determina si en el camino del rey esta alguna esquina. """
+	def buscarEsquinaRey(self, copiaTablero):
+		rey = self.buscarRey(copiaTablero)
+		self.esquinas = []
+		
+		cx = rey[0]-1
+		cy = rey[1]
+		while(cx >= 0 and copiaTablero[cx][cy]== ""):
+			# revisar arriba
+			if( (cx == 0 and cy == 0) or (cx == 0 and cy == self.TAMANO-1) ):
+				self.esquinas.append( (cx, cy) )
+			cx -= 1
+
+		cx = rey[0]+1
+		cy = rey[1]
+		while(cx <= self.TAMANO-1 and copiaTablero[cx][cy]== ""):
+			# revisar abajo
+			if( (cx == self.TAMANO-1 and cy == 0) or (cx == self.TAMANO-1 and cy == self.TAMANO-1) ):
+				self.esquinas.append( (cx, cy) )
+			cx += 1
+		
+		cx = rey[0]
+		cy = rey[1]-1
+		while(cy >= 0 and copiaTablero[cx][cy]== ""):
+			# revisar a la izquierda
+			if( (cx == 0 and cy == 0) or (cx == self.TAMANO-1 and cy == 0) ):
+				self.esquinas.append( (cx, cy) )
+			cy -= 1
+			
+		cx = rey[0]
+		cy = rey[1]+1
+		while(cy <= self.TAMANO-1):
+			# revisar a la derecha
+			if( (cx == 0 and cy == self.TAMANO-1) or (cx == self.TAMANO-1 and cy == self.TAMANO-1) ):
+				self.esquinas.append( (cx, cy) )
+			cy += 1
+		
+		if self.esquinas != []:	
+			# si hay al menos una esquina alcanzable
+			return True
+		else:
+			return False
+	
+	
+	""" Verifica el estado actual del rey. """ # sin terminar
 	def estadoRey(self, copiaTablero):
 		if self.verificarEsquinas(copiaTablero):
 			# El rey ha llegado a una esquina
 			return 1
-		else
+		else:
 			encasillado = self.verificarLimites(copiaTablero)
 			if encasillado == 4:
 				# El rey ha sido encasillado, jaquemate
@@ -626,9 +676,8 @@ class Calculos:
 				return 3
 				# Aqui verifiar si el rey tiene una escapatoria
 				
-			
-	
-	
+
+				
 	def verificarEsquinas(self, copiaTablero):
 		tablero = copiaTablero
 		if tablero[0][0] == "rey" or tablero[0][TAMANO-1] == "rey" or tablero[TAMANO-1][0] == "rey" or tablero[TAMANO-1][TAMANO-1] == "rey":
@@ -636,7 +685,10 @@ class Calculos:
 		else:
 			return False	
 
-	
+			
+	""" Crea una tupla que representa los limites del rey para determinar 
+	si este esta encasillado.
+	"""
 	def verificarLimites(self, copiaTablero):
 		tablero = copiaTablero
 		posRey = self.buscarRey(tablero)
