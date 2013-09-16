@@ -20,7 +20,7 @@ class Main:
 	logico = None
 	
 	# velocidad promedio de cuadros por segundo
-	FPS = 24
+	FPS = 114
 	
 	FPSCLOCK = None
 	SUPERFICIE = None
@@ -32,8 +32,8 @@ class Main:
 		# iniciar el modulo pygame, el objeto FPS y la ventana
 		pygame.init()
 		self.FPSCLOCK = pygame.time.Clock()
-		self.SUPERFICIE = pygame.display.set_mode((self.LARGO_VENTANA, self.ANCHO_VENTANA))
-		pygame.display.set_caption('Ajedrez Vikingo')
+		#self.SUPERFICIE = pygame.display.set_mode((self.LARGO_VENTANA, self.ANCHO_VENTANA))
+		#pygame.display.set_caption('Ajedrez Vikingo')
 		
 		# instancia de clases 
 		self.jugador = Jugador()
@@ -62,7 +62,7 @@ class Main:
 		
 			mouseClic = False
 			
-			self.grafico.dibujarTablero()
+			self.grafico.dibujarVentana()
 			if jaque:
 				self.grafico.dibujarAlerta(self.calculos.getEsquinas(), "verde")
 			if peligro:
@@ -151,6 +151,8 @@ class Grafico:
 	LARGO_CUADRO = None
 	TAMANO = None
 	CENTRO = None
+	MARGEN_X = None
+	MARGEN_Y = None
 	
 	# almacenas las direcciones de las imagenes
 	RUTA = None
@@ -163,6 +165,8 @@ class Grafico:
 	POSBY = None
 	POSNX = None
 	POSNY = None
+	
+	objFuente = None
 	
 	SUPERFICIE = None
 	logico = None
@@ -177,36 +181,41 @@ class Grafico:
 		self.CENTRO = (self.TAMANO-1) / 2
 		self.LARGO_CUADRO =  self.LARGO_VENTANA / self.TAMANO
 		self.ANCHO_CUADRO =  self.ANCHO_VENTANA / self.TAMANO
+		self.MARGEN_X = int(self.ANCHO_CUADRO*0.33)
+		self.MARGEN_Y = self.ANCHO_CUADRO + int(self.ANCHO_CUADRO*0.33) 
+		
 		self.DIRECCION = ("rey.png","blanca.png","negra.png")
 		self.CARPETA = ("img")
 		self.RUTA = sys.argv[0][:len(sys.argv[0])-11]
-		
 		for i in range(3):
 			self.IMAGENES[i] = pygame.image.load(os.path.join(self.RUTA, self.CARPETA, self.DIRECCION[i]))	
 		self.IMAGENES = tuple(self.IMAGENES)
-		
 		self.POSBX = config["POSBX"]
 		self.POSBY = config["POSBY"]
 		self.POSNX = config["POSNX"]
 		self.POSNY = config["POSNY"]
 		
+		self.objFuente = pygame.font.Font('freesansbold.ttf', 32)
 		
-	""" Convierte las coordenadas de la esquina superior izquierda del cuadro 
+		self.SUPERFICIE = pygame.display.set_mode(((self.LARGO_VENTANA + 2*self.MARGEN_X), (self.ANCHO_VENTANA + 2*self.MARGEN_Y) ))
+		pygame.display.set_caption('Ajedrez Vikingo')
+		
+		
+	""" Convierte las coordenadas de la esquina superior coordX del cuadro 
 	a una coordenada de pixel.
 	"""
 	def coordEsquinaCuadro(self, cuadrox, cuadroy):
-		izquierda = (cuadrox * self.LARGO_CUADRO)
-		arriba = (cuadroy * self.ANCHO_CUADRO)
-		return (arriba, izquierda)
+		coordX = self.MARGEN_X + (cuadroy * self.ANCHO_CUADRO)
+		coordY = self.MARGEN_Y + (cuadrox * self.LARGO_CUADRO)
+		return (coordX, coordY)
 		
 
 	""" Convierte las coordenadas del centro del cuadro a una coordenada de pixel. """
 	def coordFichaEnCuadro(self, cuadrox, cuadroy, escalax, escalay):
-		izquierda = (cuadrox * self.LARGO_CUADRO)
-		arriba = (cuadroy * self.ANCHO_CUADRO)
-		izquierda += int((self.LARGO_CUADRO - int(self.LARGO_CUADRO * escalax)) / 2)
-		arriba += int((self.ANCHO_CUADRO - int(self.ANCHO_CUADRO * escalay)) / 2)
-		return (arriba, izquierda)
+		coordX, coordY = self.coordEsquinaCuadro(cuadrox, cuadroy)
+		coordX += int((self.ANCHO_CUADRO - int(self.ANCHO_CUADRO * escalax)) / 2)
+		coordY += int((self.LARGO_CUADRO - int(self.LARGO_CUADRO * escalay)) / 2)
+		return (coordX, coordY)
 		
 
 	""" Recorre un tablero "imaginario" y devuelve una posicion si la coordenada
@@ -216,8 +225,8 @@ class Grafico:
 	def getCuadroEnPixel(self, x, y):
 		for cuadrox in range(self.TAMANO):
 			for cuadroy in range(self.TAMANO):
-				arriba, izquierda = self.coordEsquinaCuadro(cuadrox, cuadroy)
-				dibCuadro = pygame.Rect(arriba, izquierda, self.LARGO_CUADRO, self.ANCHO_CUADRO)
+				coordY, coordX = self.coordEsquinaCuadro(cuadrox, cuadroy)
+				dibCuadro = pygame.Rect(coordY, coordX, self.LARGO_CUADRO, self.ANCHO_CUADRO)
 				if dibCuadro.collidepoint(x, y):
 					return (cuadrox, cuadroy)
 		return (None, None)
@@ -227,27 +236,27 @@ class Grafico:
 	def dibujarCuadros(self):
 		for cuadrox in range(self.TAMANO):
 			for cuadroy in range(self.TAMANO):
-				arriba, izquierda = self.coordEsquinaCuadro(cuadrox, cuadroy)
+				coordX, coordY = self.coordEsquinaCuadro(cuadrox, cuadroy)
 				pygame.draw.rect(self.SUPERFICIE, self.logico.getColorCuadro(cuadrox, cuadroy), 
-					(arriba, izquierda, self.LARGO_CUADRO, self.ANCHO_CUADRO))
+					(coordX, coordY, self.LARGO_CUADRO, self.ANCHO_CUADRO))
 		
 	
 	""" Dibuja el icono de una ficha. """
 	def dibujarFicha(self, cuadrox, cuadroy, fichaEncima=""):
 		if self.logico.getPos(cuadrox, cuadroy) == "rey" or fichaEncima == "rey":
 			iconoParaDibujar = pygame.transform.smoothscale(self.IMAGENES[0], 
-				(int(self.LARGO_CUADRO * 0.80), int(self.ANCHO_CUADRO * 0.75)))
-			self.SUPERFICIE.blit(iconoParaDibujar, self.coordFichaEnCuadro(cuadrox, cuadroy, 0.75, 0.80))
+				(int(self.LARGO_CUADRO * 0.8), int(self.ANCHO_CUADRO * 0.75)))
+			self.SUPERFICIE.blit(iconoParaDibujar, self.coordFichaEnCuadro(cuadrox, cuadroy, 0.8, 0.75))
 				
 		elif self.logico.getPos(cuadrox, cuadroy) == "sueco" or fichaEncima == "sueco":
 			iconoParaDibujar = pygame.transform.smoothscale(self.IMAGENES[1], 
-				(int(self.LARGO_CUADRO * 0.50), int(self.ANCHO_CUADRO * 0.75)))
-			self.SUPERFICIE.blit(iconoParaDibujar, self.coordFichaEnCuadro(cuadrox, cuadroy, 0.75, 0.50))
+				(int(self.LARGO_CUADRO * 0.5), int(self.ANCHO_CUADRO * 0.75)))
+			self.SUPERFICIE.blit(iconoParaDibujar, self.coordFichaEnCuadro(cuadrox, cuadroy, 0.5, 0.75))
 		
 		elif self.logico.getPos(cuadrox, cuadroy) == "moscovita" or fichaEncima == "moscovita":
 			iconoParaDibujar = pygame.transform.smoothscale(self.IMAGENES[2], 
-				(int(self.LARGO_CUADRO * 0.50), int(self.ANCHO_CUADRO * 0.75)))
-			self.SUPERFICIE.blit(iconoParaDibujar, self.coordFichaEnCuadro(cuadrox, cuadroy, 0.75, 0.50))	
+				(int(self.LARGO_CUADRO * 0.5), int(self.ANCHO_CUADRO * 0.75)))
+			self.SUPERFICIE.blit(iconoParaDibujar, self.coordFichaEnCuadro(cuadrox, cuadroy, 0.5, 0.75))	
 		
 		
 	""" Dibuja las fichas del tablero. """
@@ -259,13 +268,13 @@ class Grafico:
 
 	""" Vuelve a dibujar el cuadro señalado por los parámetros pero de un color más claro. """
 	def dibujarCuadroIluminado(self, cuadrox, cuadroy, fichaEncima=(), alerta=""):
-		arriba, izquierda = self.coordEsquinaCuadro(cuadrox, cuadroy)
+		coordY, coordX = self.coordEsquinaCuadro(cuadrox, cuadroy)
 		if alerta != "":
 			pygame.draw.rect(self.SUPERFICIE, self.logico.getColorAlerta(alerta), 
-				(arriba, izquierda, self.LARGO_CUADRO, self.ANCHO_CUADRO))
+				(coordY, coordX, self.LARGO_CUADRO, self.ANCHO_CUADRO))
 		else:
 			pygame.draw.rect(self.SUPERFICIE, self.logico.getColorIluminado(cuadrox, cuadroy), 
-				(arriba, izquierda, self.LARGO_CUADRO, self.ANCHO_CUADRO))
+				(coordY, coordX, self.LARGO_CUADRO, self.ANCHO_CUADRO))
 		if fichaEncima != ():
 			self.dibujarFicha(cuadrox, cuadroy, self.logico.getPos(fichaEncima[0], fichaEncima[1]))
 		else:
@@ -288,10 +297,42 @@ class Grafico:
 		for cuadro in listaCuadros:
 			self.dibujarCuadroIluminado(cuadro[0], cuadro[1], (), alerta)
 	
+	
+	""" Dibuja los iconos de los paneles superior e inferior del tablero de juego. """
+	def dibujarPanel(self):
+		coordX = self.MARGEN_X + int((self.ANCHO_CUADRO - int(self.ANCHO_CUADRO * 0.50)) / 2)
+		coordY = 0 + int((self.LARGO_CUADRO - int(self.LARGO_CUADRO * 0.75)) / 2)
+		
+		iconoParaDibujar = pygame.transform.smoothscale(self.IMAGENES[1], 
+			(int(self.LARGO_CUADRO * 0.50), int(self.ANCHO_CUADRO * 0.75)))
+		self.SUPERFICIE.blit(iconoParaDibujar, (coordX, coordY))
+		
+		coordX = self.MARGEN_X + int((self.ANCHO_CUADRO - int(self.ANCHO_CUADRO * 0.50)) / 2)
+		coordY = (self.ANCHO_VENTANA + self.MARGEN_X + self.MARGEN_Y) + int((self.LARGO_CUADRO - int(self.LARGO_CUADRO * 0.75)) / 2)
+		
+		iconoParaDibujar = pygame.transform.smoothscale(self.IMAGENES[2], 
+			(int(self.LARGO_CUADRO * 0.50), int(self.ANCHO_CUADRO * 0.75)))
+		self.SUPERFICIE.blit(iconoParaDibujar, (coordX, coordY))
+
+		
+	def dibujarTurno(self):
+		
+		coordX = self.MARGEN_X + self.LARGO_CUADRO + int((self.ANCHO_CUADRO - int(self.ANCHO_CUADRO * 0.50)) / 2)
+		coordY = int(self.ANCHO_CUADRO / 2)
+		
+		superfTexto = self.objFuente.render('Hello world!', True, (255,255,255))
+		rectTexto = superfTexto.get_rect()
+		rectTexto.left = coordX
+		rectTexto.centery = coordY
+		self.SUPERFICIE.blit(superfTexto, rectTexto)
 		
 	""" Dibuja los cuadros y las fichas del tablero. """	
-	def dibujarTablero(self):
+	def dibujarVentana(self):
 		self.SUPERFICIE.fill(self.logico.getColorFondo())
+		pygame.draw.rect(self.SUPERFICIE, self.logico.getColorMargenes(), (0, self.ANCHO_CUADRO, (self.LARGO_VENTANA + 2*self.MARGEN_X), (self.ANCHO_VENTANA + 2*self.MARGEN_X)), 0)
+		
+		self.dibujarPanel()
+		self.dibujarTurno()
 		self.dibujarCuadros()
 		self.dibujarFichas()
 			
@@ -306,6 +347,7 @@ class Logico:
 	COLOR_CLARO2       = (255, 233, 172)
 	COLOR_ALERTA_ROJA  = (248,  55,  47)
 	COLOR_ALERTA_VERDE = ( 55, 200,  47)
+	COLOR_MARGEN       = ( 75,  43,  29)
 	
 	# almacenaran las instancias de clase
 	jugador = None
@@ -383,7 +425,9 @@ class Logico:
 	def getColorFondo(self):
 		return self.COLOR1	
 		
-		
+	def getColorMargenes(self):
+		return self.COLOR_MARGEN
+	
 	""" Devuelve los colores del tablero por defecto. """
 	def getColorCuadro(self, x, y):
 		if x % 2 == 0:
@@ -541,13 +585,13 @@ class Tablero:
 			
 		# limites
 		if cuadrox > 1:
-			#busque arriba
+			#busque coordY
 			if self.tablero[cuadrox-1][cuadroy] == oponente:
 				if self.tablero[cuadrox-2][cuadroy] == aliado:
 					self.listaComer.append((cuadrox-1, cuadroy))
 					b = True
 		if cuadroy > 1:		
-			# busque a la izquierda
+			# busque a la coordX
 			if self.tablero[cuadrox][cuadroy-1] == oponente:
 				if self.tablero[cuadrox][cuadroy-2] == aliado:
 					self.listaComer.append((cuadrox,cuadroy-1))
@@ -592,8 +636,10 @@ class Calculos:
 	#   Operaciones para el calculo del camino de una ficha    #
 	
 		""" Devuelve True si no hay ficha en un cuadro. """	
-	def noHayFicha(self, tablero, cuadrox, cuadroy):
-		if tablero[cuadrox][cuadroy] == "":
+	def noHayFicha(self, tablero, cuadrox, cuadroy, NoEsRey):
+		if NoEsRey and cuadrox == self.CENTRO and cuadroy == self.CENTRO:
+			return False
+		elif tablero[cuadrox][cuadroy] == "":
 			return True
 		else:
 			return False
@@ -616,33 +662,34 @@ class Calculos:
 	def setCamino(self, tablero, cuadrox, cuadroy):
 		copiaTablero = tablero
 		self.camino = []
-			
+		NoEsRey = True
+		if tablero[cuadrox][cuadroy] == "rey":
+			NoEsRey = False
+		
 		# verifique a la derecha
 		c = cuadrox + 1
-		while c < self.TAMANO and self.noHayFicha(copiaTablero, c, cuadroy):
+		while c < self.TAMANO and self.noHayFicha(copiaTablero, c, cuadroy, NoEsRey):
 			self.camino.append( (c, cuadroy) )
 			c+=1
-		# verifique a la izquierda
+		# verifique a la coordX
 		c = cuadrox - 1
-		while c >= 0 and self.noHayFicha(copiaTablero, c, cuadroy):
+		while c >= 0 and self.noHayFicha(copiaTablero, c, cuadroy, NoEsRey):
 			self.camino.append( (c, cuadroy) )
 			c-=1
 		# verifique abajo
 		c = cuadroy + 1
-		while c < self.TAMANO and self.noHayFicha(copiaTablero, cuadrox, c):
+		while c < self.TAMANO and self.noHayFicha(copiaTablero, cuadrox, c, NoEsRey):
 			self.camino.append( (cuadrox, c) )
 			c+=1
-		# verifique arriba
+		# verifique coordY
 		c = cuadroy - 1
-		while c >= 0 and self.noHayFicha(copiaTablero, cuadrox, c):
+		while c >= 0 and self.noHayFicha(copiaTablero, cuadrox, c, NoEsRey):
 			self.camino.append( (cuadrox, c) )
 			c-=1
 			
 		if copiaTablero[cuadrox][cuadroy] != "rey":
-			# Si la ficha no es la del rey hay que eliminar como posible lugar para 
-			# mover al centro y las esquinas
-			if (0,0) in self.camino: self.camino.remove((0,0))	
-			if (self.CENTRO, self.CENTRO) in self.camino: self.camino.remove((self.CENTRO, self.CENTRO))	
+			# Si la ficha no es la del rey hay que eliminar como posible lugar para mover las esquinas
+			if (0,0) in self.camino: self.camino.remove((0,0))		
 			if (0, self.TAMANO-1) in self.camino: self.camino.remove((0, self.TAMANO-1))	
 			if (self.TAMANO-1, 0) in self.camino: self.camino.remove((self.TAMANO-1, 0))	
 			if (self.TAMANO-1, self.TAMANO-1) in self.camino: self.camino.remove((self.TAMANO-1, self.TAMANO-1))	
@@ -676,7 +723,7 @@ class Calculos:
 		tablero = copiaTablero
 		posRey = self.buscarRey(tablero)
 		
-		# derecha, izquierda, arriba, abajo
+		# derecha, coordX, coordY, abajo
 		self.limitesRey = [0, 0, 0, 0]
 		
 		# esquinas
@@ -750,7 +797,7 @@ class Calculos:
 				control += 1
 
 		if limite == 1:
-			# izquierda
+			# coordX
 			x = posRey[0]
 			y = posRey[1]-1
 			
@@ -776,7 +823,7 @@ class Calculos:
 				control += 1
 			
 		if limite == 2:
-			# arriba
+			# coordY
 			x = posRey[0]-1
 			y = posRey[1]
 			
@@ -846,7 +893,7 @@ class Calculos:
 		cx = rey[0]-1
 		cy = rey[1]
 		while(cx >= 0 and copiaTablero[cx][cy]== ""):
-			# revisar arriba
+			# revisar coordY
 			if( (cx == 0 and cy == 0) or (cx == 0 and cy == self.TAMANO-1) ):
 				self.esquinas.append( (cx, cy) )
 			cx -= 1
@@ -862,7 +909,7 @@ class Calculos:
 		cx = rey[0]
 		cy = rey[1]-1
 		while(cy >= 0 and copiaTablero[cx][cy]== ""):
-			# revisar a la izquierda
+			# revisar a la coordX
 			if( (cx == 0 and cy == 0) or (cx == self.TAMANO-1 and cy == 0) ):
 				self.esquinas.append( (cx, cy) )
 			cy -= 1
