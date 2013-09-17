@@ -53,6 +53,7 @@ class Main:
 		seleccion = False
 		
 		jaque = False
+		jaqueMate = False
 		peligro = False
 		
 		# sirve para almacenar la posicion de la ficha seleccionada por el clic
@@ -62,8 +63,8 @@ class Main:
 		
 			mouseClic = False
 			
-			self.grafico.dibujarVentana()
-			if jaque:
+			self.grafico.dibujarVentana(self.jugador.getJugador(), self.logico.getComidas1(), self.logico.getComidas2(), jaque, jaqueMate, peligro)
+			if jaque or jaqueMate:
 				self.grafico.dibujarAlerta(self.calculos.getEsquinas(), "verde")
 			if peligro:
 				self.grafico.dibujarAlerta(self.calculos.getPeligroRey(), "roja")
@@ -129,12 +130,20 @@ class Main:
 							else:
 								peligro = False
 							
-							if self.calculos.buscarEsquinaRey(copiaTablero):
-								# hay una situacion de jaque o jaque mate
-								self.grafico.dibujarAlerta(self.calculos.getEsquinas(), "verde")	
+							esquinas = self.calculos.buscarEsquinaRey(copiaTablero)
+							if esquinas == 1:
+								# hay una situacion de jaque 
 								jaque = True
+								jaqueMate = False
+								self.grafico.dibujarAlerta(self.calculos.getEsquinas(), "verde")	
+							elif esquinas == 2:
+								# hay una situacion de jaquemate
+								jaque = False
+								jaqueMate = True
+								self.grafico.dibujarAlerta(self.calculos.getEsquinas(), "verde")	
 							else:
 								jaque = False
+								jaqueMate = False
 			
 			pygame.display.update()	
 			self.FPSCLOCK.tick(self.FPS)	
@@ -298,41 +307,94 @@ class Grafico:
 			self.dibujarCuadroIluminado(cuadro[0], cuadro[1], (), alerta)
 	
 	
+	def dibujarFichaIndividual(self, i, coordX, coordY):
+		iconoParaDibujar = pygame.transform.smoothscale(self.IMAGENES[i], 
+			(int(self.LARGO_CUADRO * 0.50), int(self.ANCHO_CUADRO * 0.75)))
+		self.SUPERFICIE.blit(iconoParaDibujar, (coordX, coordY))
+	
+	
 	""" Dibuja los iconos de los paneles superior e inferior del tablero de juego. """
 	def dibujarPanel(self):
 		coordX = self.MARGEN_X + int((self.ANCHO_CUADRO - int(self.ANCHO_CUADRO * 0.50)) / 2)
-		coordY = 0 + int((self.LARGO_CUADRO - int(self.LARGO_CUADRO * 0.75)) / 2)
+		coordY = int((self.LARGO_CUADRO - int(self.LARGO_CUADRO * 0.75)) / 2)
 		
-		iconoParaDibujar = pygame.transform.smoothscale(self.IMAGENES[1], 
-			(int(self.LARGO_CUADRO * 0.50), int(self.ANCHO_CUADRO * 0.75)))
-		self.SUPERFICIE.blit(iconoParaDibujar, (coordX, coordY))
+		self.dibujarFichaIndividual(2, coordX, coordY)
 		
 		coordX = self.MARGEN_X + int((self.ANCHO_CUADRO - int(self.ANCHO_CUADRO * 0.50)) / 2)
 		coordY = (self.ANCHO_VENTANA + self.MARGEN_X + self.MARGEN_Y) + int((self.LARGO_CUADRO - int(self.LARGO_CUADRO * 0.75)) / 2)
 		
-		iconoParaDibujar = pygame.transform.smoothscale(self.IMAGENES[2], 
-			(int(self.LARGO_CUADRO * 0.50), int(self.ANCHO_CUADRO * 0.75)))
-		self.SUPERFICIE.blit(iconoParaDibujar, (coordX, coordY))
-
+		self.dibujarFichaIndividual(1, coordX, coordY)
 		
-	def dibujarTurno(self):
+		coordX = self.LARGO_VENTANA - self.MARGEN_X + int((self.ANCHO_CUADRO - int(self.ANCHO_CUADRO * 0.50)) / 2)
+		coordY = int((self.LARGO_CUADRO - int(self.LARGO_CUADRO * 0.75)) / 2)
+		
+		self.dibujarFichaIndividual(1, coordX, coordY)
+
+		coordX = self.LARGO_VENTANA - self.MARGEN_X + int((self.ANCHO_CUADRO - int(self.ANCHO_CUADRO * 0.50)) / 2)
+		coordY = (self.ANCHO_VENTANA + self.MARGEN_X + self.MARGEN_Y) + int((self.LARGO_CUADRO - int(self.LARGO_CUADRO * 0.75)) / 2)
+		
+		self.dibujarFichaIndividual(2, coordX, coordY)
+		
+		
+	def dibujarTexto(self, jugAct, c1, c2, jaque, jaqueMate, peligro):
+		textoJ1 = 'Jugador 1, tu turno.' if jugAct == "jugador1" else ''
+		textoJ2 = 'Jugador 2, tu turno.' if jugAct == "jugador2" else ''
+		
+		if jaque:
+			textoJ1 = 'Jugador 1, Jaque'
+		elif jaqueMate:
+			textoJ1 = 'Jugador 1, JaqueMate'
+			
+		if peligro:
+			textoJ2 = 'Jugador 2, vigila tu rey'
+			
+		fichasC1 = 'x'+str(c1)
+		fichasC2 = 'x'+str(c2)
 		
 		coordX = self.MARGEN_X + self.LARGO_CUADRO + int((self.ANCHO_CUADRO - int(self.ANCHO_CUADRO * 0.50)) / 2)
 		coordY = int(self.ANCHO_CUADRO / 2)
 		
-		superfTexto = self.objFuente.render('Hello world!', True, (255,255,255))
+		superfTexto = self.objFuente.render(textoJ1, True, (255,255,255))
 		rectTexto = superfTexto.get_rect()
 		rectTexto.left = coordX
 		rectTexto.centery = coordY
 		self.SUPERFICIE.blit(superfTexto, rectTexto)
 		
+		coordX = self.MARGEN_X + self.LARGO_CUADRO + int((self.ANCHO_CUADRO - int(self.ANCHO_CUADRO * 0.50)) / 2)
+		coordY = self.ANCHO_VENTANA + self.MARGEN_Y + self.MARGEN_X + int(self.ANCHO_CUADRO / 2)
+		
+		superfTexto = self.objFuente.render(textoJ2, True, (255,255,255))
+		rectTexto = superfTexto.get_rect()
+		rectTexto.left = coordX
+		rectTexto.centery = coordY
+		self.SUPERFICIE.blit(superfTexto, rectTexto)
+		
+		coordX = self.LARGO_VENTANA - self.MARGEN_X - self.LARGO_CUADRO + int((self.ANCHO_CUADRO - int(self.ANCHO_CUADRO * 0.50)) / 2)
+		coordY = int(self.ANCHO_CUADRO / 2)
+		
+		superfTexto = self.objFuente.render(fichasC1, True, (255,255,255))
+		rectTexto = superfTexto.get_rect()
+		rectTexto.left = coordX
+		rectTexto.centery = coordY
+		self.SUPERFICIE.blit(superfTexto, rectTexto)	
+
+		coordX = self.LARGO_VENTANA - self.MARGEN_X - self.LARGO_CUADRO + int((self.ANCHO_CUADRO - int(self.ANCHO_CUADRO * 0.50)) / 2)
+		coordY = self.ANCHO_VENTANA + self.MARGEN_Y + self.MARGEN_X + int(self.ANCHO_CUADRO / 2)
+		
+		superfTexto = self.objFuente.render(fichasC2, True, (255,255,255))
+		rectTexto = superfTexto.get_rect()
+		rectTexto.left = coordX
+		rectTexto.centery = coordY
+		self.SUPERFICIE.blit(superfTexto, rectTexto)
+		
+		
 	""" Dibuja los cuadros y las fichas del tablero. """	
-	def dibujarVentana(self):
+	def dibujarVentana(self, jugAct, c1, c2, jaque, jaqueMate, peligro):
 		self.SUPERFICIE.fill(self.logico.getColorFondo())
 		pygame.draw.rect(self.SUPERFICIE, self.logico.getColorMargenes(), (0, self.ANCHO_CUADRO, (self.LARGO_VENTANA + 2*self.MARGEN_X), (self.ANCHO_VENTANA + 2*self.MARGEN_X)), 0)
 		
 		self.dibujarPanel()
-		self.dibujarTurno()
+		self.dibujarTexto(jugAct, c1, c2, jaque, jaqueMate, peligro)
 		self.dibujarCuadros()
 		self.dibujarFichas()
 			
@@ -397,10 +459,19 @@ class Logico:
 	def mover(self, cx, cy, cnx, cny):
 		self.tablero.setFicha(cx, cy, cnx, cny)
 		if self.tablero.comerFicha(cnx, cny):
+			self.tablero.setComidas()
 			for cuadro in self.getComer():
 				self.tablero.setFicha(cuadro[0], cuadro[1])	
 	
-		# Operaciones que interactúan con la clase Calculos #
+	
+	def getComidas1(self):
+		return self.tablero.getComidas1()	
+		
+		
+	def getComidas2(self):
+		return self.tablero.getComidas2()
+		
+	# Operaciones que interactúan con la clase Calculos #
 	
 	""" Dada una posicion calcula el "camino" que esa ficha puede recorrer. """
 	def setCamino(self, cuadrox, cuadroy):
@@ -480,6 +551,8 @@ class Tablero:
 	listaComer = None
 	
 	jugador = None
+	fichasComidas1 = None
+	fichasComidas2 = None
 	
 	def __init__(self, jug, config):
 		self.jugador = jug
@@ -490,6 +563,9 @@ class Tablero:
 		self.POSBY = config["POSBY"]
 		self.POSNX = config["POSNX"]
 		self.POSNY = config["POSNY"]
+		
+		self.fichasComidas1 = 0
+		self.fichasComidas2 = 0
 	
 	""" Crea una matriz que representa la lógica del tablero """	
 	def crearTablero(self):
@@ -614,6 +690,20 @@ class Tablero:
 	""" Devuelve la lista con las posiciones para comer. """		
 	def getComer(self):
 		return self.listaComer	
+	
+	def setComidas(self):
+		if self.jugador.getJugador() == "jugador1":
+			self.fichasComidas1 += len(self.listaComer)
+		else:
+			self.fichasComidas2 += len(self.listaComer)
+		
+		
+	def getComidas1(self):
+		return self.fichasComidas1	
+		
+		
+	def getComidas2(self):
+		return self.fichasComidas2
 	
 ########################################### Clase Calculos ################################################	
 #                         Realiza los calculos necesarios conforme al tablero                             #
@@ -756,7 +846,6 @@ class Calculos:
 				# tiene una ficha negra a la par 
 				self.limitesRey[lim[0]] = 1
 				
-		print(self.limitesRey)
 		# sumatoria para control
 		return self.limitesRey[0] + self.limitesRey[1] + self.limitesRey[2] + self.limitesRey[3]
 
@@ -924,9 +1013,9 @@ class Calculos:
 		
 		if self.esquinas != []:	
 			# si hay al menos una esquina alcanzable
-			return True
+			return len(self.esquinas)
 		else:
-			return False	
+			return 0	
 	
 	""" Devuelve una lista con las esquinas alcanzables por el rey """
 	def getEsquinas(self):
