@@ -161,8 +161,7 @@ class Main:
 		self.jaqueMate = False
 		self.peligro = False
 		self.fichaSeleccion = ""
-		self.jugador.nuevoJuego()
-	
+		self.jugador.nuevoJuego()	
 	
 #############################################  Clase Grafico ##############################################
 #                  Pinta la ventana conforme los datos proporcionados por la clase Logico                 # 
