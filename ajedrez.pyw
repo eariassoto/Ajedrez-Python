@@ -88,7 +88,7 @@ class Main:
 			
 			if cuadrox != None and cuadroy != None and not mouseClic:
 				if self.logico.hayFichaJugador(cuadrox, cuadroy):
-					# el mouse esta sobre un cuadro
+					# el mouse esta sobre un cuadro 
 					self.grafico.dibujarCuadroIluminado(cuadrox, cuadroy)
 				elif self.logico.estaEnCamino(cuadrox, cuadroy) and self.seleccion:
 					# el mouse esta sobre un cuadro del camino de la ficha
