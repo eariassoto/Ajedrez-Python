@@ -5,7 +5,7 @@ import random, pygame, sys, os
 from pygame.locals import *
 from copy import deepcopy
 
-############################################### Clase Main ################################################
+################################################## Main ###################################################
 #                       Maneja los eventos del mouse y el loop principal del juego                        #
 ###########################################################################################################
 class Main:	
@@ -161,8 +161,9 @@ class Main:
 		self.fichaSeleccion = ""
 		self.jugador.nuevoJuego()	
 	
-#############################################  Clase Grafico ##############################################
-#                  Pinta la ventana conforme los datos proporcionados por la clase Logico                 # 
+	
+################################################ Grafico ##################################################
+#                                 Maneja la parte gráfica del programa                                    # 
 ###########################################################################################################
 class Grafico:
 
@@ -438,8 +439,10 @@ class Grafico:
 		self.dibujarFichas()
 
 
-
-
+################################################ Tablero ##################################################
+#  Maneja la representacion del tablero, crea una cantidad de ficha y las asocia entre ellas, para        #
+#  referenciarlas posteriormente mantiene una matriz de punteros a las fichas                             # 
+###########################################################################################################
 class Tablero(object):
 	config = None
 	jugador = None
@@ -458,7 +461,7 @@ class Tablero(object):
 				clase = ()
 				# asignar ficha
 				if i == centro and j == centro:
-					ficha = Rey(i, j, ("rey", "moscovita"), config["TAMANO"])
+					ficha = Rey(i, j, config["TAMANO"])
 				else:
 					if len(blanca) > 0 and (i, j) == blanca[0]:
 						clase = ("sueco", "moscovita")
@@ -531,7 +534,8 @@ class Tablero(object):
 				self.tablero[i][j].aba = self.tablero[i+1][j] if i < self.config["TAMANO"]-1 else None
 				self.tablero[i][j].izq = self.tablero[i][j-1] if j > 0 else None
 				self.tablero[i][j].der = self.tablero[i][j+1] if j < self.config["TAMANO"]-1 else None
-		
+		if self.tablero[dx][dy].comer(self.tablero[dx][dy]) != []:
+			# comer aqui
 		
 	def reyEnEsquina(self):
 		for (x, y) in ((0,0),(0,config["TAMANO"]-1),(config["TAMANO"]-1,0),(config["TAMANO"]-1,config["TAMANO"]-1)):
@@ -558,7 +562,10 @@ class Tablero(object):
 		self.buscarRey().buscarEsquinas()
 
 
-
+################################################# Ficha ###################################################
+#  Maneja la representacion del tablero, crea una cantidad de ficha y las asocia entre ellas, para        #
+#  referenciarlas posteriormente mantiene una matriz de punteros a las fichas                             # 
+###########################################################################################################
 class Ficha(object):
 	der = None
 	izq = None
@@ -670,17 +677,13 @@ class Ficha(object):
 		
 		
 class Rey(Ficha):
-	claseRey = None
-	enemigo = None
 	
-	def __init__(self, i, j, clase, t):
-		self.claseRey = clase[0]
-		self.enemigo = clase[1]
+	def __init__(self, i, j, t):
 		Ficha.__init__(self, i, j, ("sueco","moscovita"), t)
 	
 	
 	def getClase(self, general = False):
-		return self.clase if general else self.claseRey
+		return self.clase if general else "rey"
 
 	
 	def verificarLimites(self):
