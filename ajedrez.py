@@ -283,18 +283,18 @@ class Grafico:
 		
 	
 	""" Dibuja el icono de una ficha. """
-	def dibujarFicha(self, cuadrox, cuadroy, fichaEncima=""):
-		if self.tablero.getClaseFicha(cuadrox, cuadroy) == "rey" or fichaEncima == "rey":
+	def dibujarFicha(self, cuadrox, cuadroy, fichaEncima=None):
+		if self.tablero.getTipoFicha(cuadrox, cuadroy) == Rey or fichaEncima == Rey:
 			iconoParaDibujar = pygame.transform.smoothscale(self.IMAGENES[0], 
 				(int(self.LARGO_CUADRO * 0.8), int(self.ANCHO_CUADRO * 0.75)))
 			self.SUPERFICIE.blit(iconoParaDibujar, self.coordFichaEnCuadro(cuadrox, cuadroy, 0.8, 0.75))
 				
-		elif self.tablero.getClaseFicha(cuadrox, cuadroy) == "sueco" or fichaEncima == "sueco":
+		elif self.tablero.getTipoFicha(cuadrox, cuadroy) == Blanca or fichaEncima == Blanca:
 			iconoParaDibujar = pygame.transform.smoothscale(self.IMAGENES[1], 
 				(int(self.LARGO_CUADRO * 0.5), int(self.ANCHO_CUADRO * 0.75)))
 			self.SUPERFICIE.blit(iconoParaDibujar, self.coordFichaEnCuadro(cuadrox, cuadroy, 0.5, 0.75))
 		
-		elif self.tablero.getClaseFicha(cuadrox, cuadroy) == "moscovita" or fichaEncima == "moscovita":
+		elif self.tablero.getTipoFicha(cuadrox, cuadroy) == Negra or fichaEncima == Negra:
 			iconoParaDibujar = pygame.transform.smoothscale(self.IMAGENES[2], 
 				(int(self.LARGO_CUADRO * 0.5), int(self.ANCHO_CUADRO * 0.75)))
 			self.SUPERFICIE.blit(iconoParaDibujar, self.coordFichaEnCuadro(cuadrox, cuadroy, 0.5, 0.75))	
@@ -317,7 +317,7 @@ class Grafico:
 			pygame.draw.rect(self.SUPERFICIE, self.getColorIluminado(cuadrox, cuadroy), 
 				(coordY, coordX, self.LARGO_CUADRO, self.ANCHO_CUADRO))
 		if fichaEncima != ():
-			self.dibujarFicha(cuadrox, cuadroy, self.tablero.getClaseFicha(fichaEncima[0], fichaEncima[1]))
+			self.dibujarFicha(cuadrox, cuadroy, self.tablero.getTipoFicha(fichaEncima[0], fichaEncima[1]))
 		else:
 			self.dibujarFicha(cuadrox, cuadroy)
 		
@@ -464,15 +464,13 @@ class Tablero(object):
 					ficha = Rey(i, j, config["TAMANO"])
 				else:
 					if len(blanca) > 0 and (i, j) == blanca[0]:
-						clase = ("sueco", "moscovita")
+						ficha = Blanca(i, j, config["TAMANO"])
 						blanca.remove((i,j))
 					elif len(negra) > 0 and (i, j) == negra[0]: 
-						clase = ("moscovita", "sueco")
+						ficha = Negra(i, j, config["TAMANO"])
 						negra.remove((i,j))
 					else:
-						clase = ("", "")
-					# instancia de variable
-					ficha = Ficha(i,j, clase, config["TAMANO"])
+						ficha = Ficha(i, j, config["TAMANO"])
 				# asociar punteros
 				if len(self.tablero) > 0:
 					ficha.arr = self.tablero[len(self.tablero)-1][j]
@@ -484,15 +482,15 @@ class Tablero(object):
 			self.tablero.append(fila)
 		
 
-	def getClaseFicha(self, x, y):
-		return self.tablero[x][y].getClase()
+	def getTipoFicha(self, x, y):
+		return type(self.tablero[x][y])
 		
 		
 	def hayFichaTurno(self, cuadrox, cuadroy):
 		if self.jugador.getJugador() == Jugador.jugador1:
-			return self.getClaseFicha(cuadrox, cuadroy) == "moscovita" 
+			return type(self.tablero[cuadrox][cuadroy]) == Negra 
 		else:
-			return (self.getClaseFicha(cuadrox, cuadroy) == "rey" or self.getClaseFicha(cuadrox, cuadroy) == "sueco")
+			return (type(self.tablero[cuadrox][cuadroy]) == Blanca or type(self.tablero[cuadrox][cuadroy]) == Rey)
 			
 			
 	def sobreCaminoActual(self, cuadrox, cuadroy):
@@ -522,11 +520,15 @@ class Tablero(object):
 		return self.camino.count((x, y)) == 1 
 		
 		
-	def mover(self, ox, oy, dx, dy):
-		aux = deepcopy(self.tablero[ox][oy])
-		self.tablero[ox][oy] = self.tablero[dx][dy]
-		self.tablero[dx][dy] = aux
-		# solucion ineficiente pero fuc* it
+	def comerFichas(self, lista):
+		print lista
+		for x, y in lista:
+			self.tablero[x][y] = Ficha(x, y, config["TAMANO"])
+		
+		
+	""" Reacomoda los punteros de las fichas, lo hace de una forma ineficiente
+	"""	
+	def reacomodarPunteros(self):
 		for i in range(len(self.tablero)):
 			for j in range(len(self.tablero[i])):
 				self.tablero[i][j].x, self.tablero[i][j].y = i, j
@@ -534,8 +536,17 @@ class Tablero(object):
 				self.tablero[i][j].aba = self.tablero[i+1][j] if i < self.config["TAMANO"]-1 else None
 				self.tablero[i][j].izq = self.tablero[i][j-1] if j > 0 else None
 				self.tablero[i][j].der = self.tablero[i][j+1] if j < self.config["TAMANO"]-1 else None
+				
+				
+	def mover(self, ox, oy, dx, dy):
+		aux = deepcopy(self.tablero[ox][oy])
+		self.tablero[ox][oy] = self.tablero[dx][dy]
+		self.tablero[dx][dy] = aux
+		self.reacomodarPunteros()
 		if self.tablero[dx][dy].comer(self.tablero[dx][dy]) != []:
-			# comer aqui
+			self.comerFichas(self.tablero[dx][dy].getListaComer())
+			self.reacomodarPunteros()		
+				
 		
 	def reyEnEsquina(self):
 		for (x, y) in ((0,0),(0,config["TAMANO"]-1),(config["TAMANO"]-1,0),(config["TAMANO"]-1,config["TAMANO"]-1)):
@@ -563,57 +574,62 @@ class Tablero(object):
 
 
 ################################################# Ficha ###################################################
-#  Maneja la representacion del tablero, crea una cantidad de ficha y las asocia entre ellas, para        #
-#  referenciarlas posteriormente mantiene una matriz de punteros a las fichas                             # 
+#  Clase base para modelar el comportamiento de las fichas, en ejecución esta va a ser un espacio en      #
+#  blanco.                                                                                                #
 ###########################################################################################################
 class Ficha(object):
+	
+	# punteros a las fichas vecinas
 	der = None
 	izq = None
 	arr = None
 	aba = None
 	
-	clase = None
+	# tipo de ficha aliada y enemiga (las clases hijas lo determinan)
+	aliado = None
 	enemigo = None
 	
+	#posicion de la ficha en el tablero (y matriz punteros)
+	x, y = 0, 0
+	
 	TAMANO_TABLERO = None
-	x = 0;
-	y = 0;
+	
+	# lista con coordenadas de fichas a las cuales puede comer
 	listaComer = []
 	
-	def __init__(self, i, j, clase, t):
-		self.x = i
-		self.y = j
+	""" Construye una nueva ficha 
+	"""
+	def __init__(self, x, y, t):
+		self.x = x
+		self.y = y
 		self.TAMANO_TABLERO = t
-		self.clase = clase[0] 
-		self.enemigo = clase[1]
-		
-		
-	def getClase(self, bool = False):
-		return self.clase
-		
-		
-	def getEnemigo(self):
-		return self.enemigo
-		
-		
-	def getCoord(self):
-		return (self.x, self.y)	
 		
 	
+	""" Devuelve las coordenadas de la ficha
+	"""
+	def getCoord(self):
+		return (self.x, self.y)
+	
+	""" Determina si una ficha puede formar parte del 
+	camino de otra. El parametro ficha indica quien 
+	hizo el llamado, esto para determinar si dejo pasar
+	el centro o las esquinas
+	"""
 	def esCamino(self, ficha):
-		if self.clase != "":
+		if type(self) == Blanca or type(self) == Negra or type(self) == Rey:
 			return False
 		else:
-			if(type(ficha) == Rey):
+			if type(ficha) == Rey:
 				return True
 			else:
 				centro = (config["TAMANO"]-1)/2
 				return not ((self.x, self.y) == (centro, centro) or (self.x, self.y) == (0, 0) or
 				(self.x, self.y) == (0, config["TAMANO"]-1) or (self.x, self.y) == (config["TAMANO"]-1, 0) 
 				or (self.x, self.y) == (config["TAMANO"]-1, config["TAMANO"]-1))
+
 				
-		
-		
+	""" Calcula el camino que puede recorrer la ficha
+	"""	
 	def getCamino(self):
 		camino = []
 		tmp = self
@@ -636,122 +652,154 @@ class Ficha(object):
 		return camino
 		
 		
+	""" Modifica la lista de comer almacenando las posibilidades
+	"""
 	def comer(self, ficha):
-		self.listaComer = []
-		clase = ficha.getClase(True)
-		enemigo = ficha.getEnemigo()
-		b = False
+		listaComer = []
+		x, y = self.x, self.y
+		aliado = ficha.aliado
+		enemigo = ficha.enemigo
+		
 		# esquinas
-		if (self.x, self.y) == (0, 2) and self.izq.getClase() == enemigo:
-			self.listaComer.append((0,1))
-		elif (self.x, self.y) == (0, self.TAMANO_TABLERO-3) and self.der.getClase() == enemigo:
-			self.listaComer.append((0,self.TAMANO_TABLERO-2))
-		elif (self.x, self.y) == (self.TAMANO_TABLERO-1, 2) and self.izq.getClase() == enemigo:
-			self.listaComer.append((self.TAMANO_TABLERO-1,1))
-		elif (self.x, self.y) == (self.TAMANO_TABLERO-1, self.TAMANO_TABLERO-3) and self.der.getClase() == enemigo:
-			self.listaComer.append((self.TAMANO_TABLERO-1,self.TAMANO_TABLERO-2))
-		elif (self.x, self.y) == (2, 0) and self.izq != None and self.arr.getClase() == enemigo:
-			self.listaComer.append((1,0))
-		elif (self.x, self.y) == (self.TAMANO_TABLERO-3, 0) and self.aba.getClase() == enemigo:
-			self.listaComer.append((self.TAMANO_TABLERO-2,0))
-		elif (self.x, self.y) == (2, self.TAMANO_TABLERO-1) and self.arr.getClase() == enemigo:
-			self.listaComer.append((1,self.TAMANO_TABLERO-1))
-		elif (self.x, self.y) == (self.TAMANO_TABLERO-3, self.TAMANO_TABLERO-1) and self.aba.getClase() == enemigo:
-			self.listaComer.append((self.TAMANO_TABLERO-2,self.TAMANO_TABLERO-1))
-			
-		# limites
-		if self.arr != None and self.arr.getClase() == enemigo and self.arr.arr != None and self.arr.arr.getClase(True) == clase:
-			self.listaComer.append(self.arr.getCoord())
-		if self.aba != None and self.aba.getClase() == enemigo and self.aba.aba != None and self.aba.aba.getClase(True) == clase:
-			self.listaComer.append(self.aba.getCoord())
-		if self.izq != None and self.izq.getClase() == enemigo and self.izq.izq != None and self.izq.izq.getClase(True) == clase:
-			self.listaComer.append(self.izq.getCoord())
-		if self.der != None and self.der.getClase() == enemigo and self.der.der != None and self.der.der.getClase(True) == clase:
-			self.listaComer.append(self.der.getCoord())
-
+		if (x, y) == (0, 2) and type(self.izq) == enemigo:
+			listaComer.append((0,1))
+		elif (x, y) == (0, self.TAMANO_TABLERO-3) and type(self.der) == enemigo:
+			listaComer.append((0,self.TAMANO_TABLERO-2))
+		elif (x, y) == (self.TAMANO_TABLERO-1, 2) and type(self.izq) == enemigo:
+			listaComer.append((self.TAMANO_TABLERO-1,1))
+		elif (x, y) == (self.TAMANO_TABLERO-1, self.TAMANO_TABLERO-3) and type(self.der) == enemigo:
+			listaComer.append((self.TAMANO_TABLERO-1,self.TAMANO_TABLERO-2))
+		elif (self.x, self.y) == (2, 0) and self.izq != None and type(self.arr) == enemigo:
+			listaComer.append((1,0))
+		elif (x, y) == (self.TAMANO_TABLERO-3, 0) and type(self.aba) == enemigo:
+			listaComer.append((self.TAMANO_TABLERO-2,0))
+		elif (x, y) == (2, self.TAMANO_TABLERO-1) and type(self.arr) == enemigo:
+			listaComer.append((1,self.TAMANO_TABLERO-1))
+		elif (x, y) == (self.TAMANO_TABLERO-3, self.TAMANO_TABLERO-1) and type(self.aba) == enemigo:
+			listaComer.append((self.TAMANO_TABLERO-2,self.TAMANO_TABLERO-1))
+		
+		#limites
+		# uso el isinstance() para que las blancas reconozcan al rey pero no a la inversa
+		if type(self.arr) == enemigo and isinstance(self.arr.arr, aliado):
+			listaComer.append(self.arr.getCoord())
+		if type(self.aba) == enemigo and isinstance(self.aba.aba, aliado):
+			listaComer.append(self.aba.getCoord())
+		if type(self.izq) == enemigo and isinstance(self.izq.izq, aliado):
+			listaComer.append(self.izq.getCoord())
+		if type(self.der) == enemigo and isinstance(self.der.der, aliado):
+			listaComer.append(self.der.getCoord())
+		
+		self.listaComer = listaComer
 		return self.listaComer
 		
-	
+		
+	""" Devuelve la lista de fichas para comer
+	"""	
 	def getListaComer(self):
 		return self.listaComer
+	
+	
+################################################# Negra ###################################################
+#  Clase que hereda de Ficha y representa las fichas del jugador 1                                        #
+###########################################################################################################	
+class Negra(Ficha):
+	def __init__(self, i, j, t):
+		self.aliado = Negra
+		self.enemigo = Blanca
+		Ficha.__init__(self, i, j, t)
+	
+
+################################################# Blanca ##################################################
+#  Clase que hereda de Ficha y representa las fichas del jugador 2, a excepción del rey                   #
+###########################################################################################################	
+class Blanca(Ficha):
+	def __init__(self, i, j, t):
+		self.aliado = Blanca
+		self.enemigo = Negra
+		Ficha.__init__(self, i, j, t)
 		
-		
-class Rey(Ficha):
+
+################################################## Rey ####################################################
+#  Hereda de Ficha, agrega funcionalidades específica de la ficha del rey.                                # 
+###########################################################################################################		
+class Rey(Blanca):
 	
 	def __init__(self, i, j, t):
-		Ficha.__init__(self, i, j, ("sueco","moscovita"), t)
-	
-	
-	def getClase(self, general = False):
-		return self.clase if general else "rey"
+		self.aliado = Blanca
+		self.enemigo = Negra
+		Blanca.__init__(self, i, j, t)
 
 	
 	def verificarLimites(self):
 		c = 0
-		if self.arr != None and self.arr.getClase() == self.enemigo:
+		if type(self.arr) == self.enemigo:
 			c += 1
-		if self.aba != None and self.aba.getClase() == self.enemigo:
+		if type(self.aba) == self.enemigo:
 			c += 1
-		if self.izq != None and self.izq.getClase() == self.enemigo:
+		if type(self.der) == self.enemigo:
 			c += 1
-		if self.der != None and self.der.getClase() == self.enemigo:
+		if type(self.izq) == self.enemigo:
 			c += 1
 		return c
 
 	def estaEnPeligro(self):
 		limite = ()
 		for l in ((self.arr, 1), (self.aba, 2), (self.izq, 3), (self.der, 4)):
-			if l[0].getClase() != self.enemigo:
+			if type(l[0]) == self.enemigo:
 				limite = l
 		
 		if limite[1] == 1:
 			while(limite[0] != None):
-				if limite[0].getClase() == self.enemigo:
+				if type(limite[0]) == self.enemigo:
 					return True
 				else:
 					limite[0] = limite[0].arr
 		elif limite[1] == 2:
 			while(limite[0] != None):
-				if limite[0].getClase() == self.enemigo:
+				if type(limite[0]) == self.enemigo:
 					return True
 				else:
 					limite[0] = limite[0].aba
 		elif limite[1] == 3:
 			while(limite[0] != None):
-				if limite[0].getClase() == self.enemigo:
+				if type(limite[0]) == self.enemigo:
 					return True
 				else:
 					limite[0] = limite[0].izq
 		elif limite[1] == 4:
 			while(limite[0] != None):
-				if limite[0].getClase() == self.enemigo:
+				if type(limite[0]) == self.enemigo:
 					return True
 				else:
 					limite[0] = limite[0].der
+		
 		return False
 		
 		
 	def buscarEsquinas(self):
 		c = 0
 		tmp = self.arr
-		while tmp != None and tmp.getClase() == self.enemigo:
+		while tmp != None and type(tmp) == self.enemigo:
 			tmp = tmp.arr
 		c += 1 if tmp == None else 0
 		tmp = self.aba
-		while tmp != None and tmp.getClase() == self.enemigo:
+		while tmp != None and type(tmp) == self.enemigo:
 			tmp = tmp.aba
 		c += 1 if tmp == None else 0
 		tmp = self.izq
-		while tmp != None and tmp.getClase() == self.enemigo:
+		while tmp != None and type(tmp) == self.enemigo:
 			tmp = tmp.izq
 		c += 1 if tmp == None else 0
 		tmp = self.der
-		while tmp != None and tmp.getClase() == self.enemigo:
+		while tmp != None and type(tmp) == self.enemigo:
 			tmp = tmp.der
 		c += 1 if tmp == None else 0
 		return c
 		
-		
+
+################################################ Jugador ##################################################
+#  Mantiene el estado de los turnos durante el juego                                                      # 
+###########################################################################################################		
 class Jugador(object):
 	jugador1 = "jugador1"
 	jugador2 = "jugador2"
@@ -790,13 +838,10 @@ class Jugador(object):
 		return self.fichasComidas1 if j == 1 else self.fichasComidas2
 	
 	
-	def getClaseTurno(self):
-		return ("moscovita", "sueco") if self.jugadorActual == self.jugador1 else ("sueco", "moscovita")
-		
-		
+	
 		
 if __name__ == '__main__':
 	config = {}
-	execfile("settings2.config", config) 
+	execfile("settings.config", config) 
 	main = Main(config)
 	main.iniciar()
