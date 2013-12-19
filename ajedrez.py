@@ -45,8 +45,8 @@ class Main:
 		
 		# instancia de clases 
 		self.jugador = Jugador()
-		self.tablero = Tablero(config, self.jugador)
-		self.grafico = Grafico(self.jugador, self.tablero, self.SUPERFICIE, config)
+		self.tablero = Tablero(self.jugador)
+		self.grafico = Grafico(self.jugador, self.tablero, self.SUPERFICIE)
 		
 		
 	def iniciar(self):
@@ -59,7 +59,7 @@ class Main:
 			mouseClic = False
 			
 			# dibujar ventana.
-			self.grafico.dibujarVentana(self.jugador, self.jaque, self.jaqueMate, self.peligro)
+			self.grafico.dibujarVentana(self.jaque, self.jaqueMate, self.peligro)
 			# TODO
 			if self.jaque or self.jaqueMate:
 				self.grafico.dibujarAlerta(self.calculos.getEsquinas(), "verde")
@@ -82,8 +82,7 @@ class Main:
 			# comprobar si el mouse esta actualmente en un cuadro
 			cuadrox, cuadroy = self.grafico.getCuadroPixel(mousex, mousey)					
 
-			# TODO modificar por cuadrox, cuadrox != None, None
-			if cuadrox != None and cuadroy != None and not mouseClic:
+			if (cuadrox, cuadroy) != (None, None) and not mouseClic:
 				if self.tablero.hayFichaTurno(cuadrox, cuadroy):
 					# el mouse esta sobre un cuadro seleccionable
 					self.grafico.dibujarCuadroIluminado(cuadrox, cuadroy)
@@ -108,15 +107,14 @@ class Main:
 					self.seleccion = False
 			
 					# comprobar el estado del juego
-					if self.jugador.jugadorActualEs(Jugador.jugador1) and self.tablero.reyEnEsquina():
+					if self.jugador.jugadorActualEs(Jugador.jugador2) and self.tablero.reyEnEsquina():
 						# El rey ha llegado a una esquina
-						# TODO
-						self.finJuego("jugador2")
+						self.finJuego(Jugador.jugador2)
 					else:
 						encasillado = self.tablero.verificarLimitesRey()
 						if encasillado == 4:
 							# El rey ha sido encasillado, jaquemate
-							self.finJuego("jugador1")
+							self.finJuego(Jugador.jugador1)
 						else:
 							if encasillado == 3:
 								# El rey puede estar en peligro
@@ -150,7 +148,7 @@ class Main:
 	
 	""" Animaciones para el fin del juego """
 	def finJuego(self, ganador):
-		self.grafico.dibujarVentana(self.jugador.getJugador(), self.logico.getComidas1(), self.logico.getComidas2(), self.jaque, self.jaqueMate, self.peligro, ganador)
+		self.grafico.dibujarVentana(self.jaque, self.jaqueMate, self.peligro, ganador)
 		pygame.display.update()
 		pygame.time.wait(5000)
 		self.logico.resetearTablero()
@@ -183,10 +181,8 @@ class Grafico:
 	objFuente = None
 	tablero = None
 	jugador = None
-	config = None
 	
-	def __init__(self, jugador, tablero, superficie, config):
-		self.config = config 
+	def __init__(self, jugador, tablero, superficie):
 		self.tablero = tablero
 		self.jugador = jugador
 		self.SUPERFICIE = superficie
@@ -218,7 +214,8 @@ class Grafico:
 		return (coordX, coordY)
 		
 
-	""" Convierte las coordenadas del centro del cuadro a una coordenada de pixel. """
+	""" Convierte las coordenadas del centro del cuadro a una coordenada de pixel. 
+	"""
 	def coordFichaEnCuadro(self, cuadrox, cuadroy, escalax, escalay):
 		coordX, coordY = self.coordEsquinaCuadro(cuadrox, cuadroy)
 		coordX += int((self.ANCHO_CUADRO - int(self.ANCHO_CUADRO * escalax)) / 2)
@@ -240,37 +237,42 @@ class Grafico:
 		return (None, None)
 		
 		
+	""" Devuelve el color respectivo de una posicion del tablero.
+	"""	
 	def getColorCuadro(self, x, y):
 		if x % 2 == 0:
 			if y % 2 == 0:
-				return self.config["COLOR1"]
+				return config["COLOR1"]
 			else:
-				return self.config["COLOR2"]
+				return config["COLOR2"]
 		else:
 			if y % 2 == 0:
-				return self.config["COLOR2"]
+				return config["COLOR2"]
 			else:
-				return self.config["COLOR1"]
+				return config["COLOR1"]
 	
 	
+	""" Devuelve el respectivo color con el efecto de iluminacion
+	de un cuadro del tablero.
+	"""
 	def getColorIluminado(self, x, y):
 		if x % 2 == 0:
 			if y % 2 == 0:
-				return self.config["COLOR_CLARO1"]
+				return config["COLOR_CLARO1"]
 			else:
-				return self.config["COLOR_CLARO2"]
+				return config["COLOR_CLARO2"]
 		else:
 			if y % 2 == 0:
-				return self.config["COLOR_CLARO2"]
+				return config["COLOR_CLARO2"]
 			else:
-				return self.config["COLOR_CLARO1"]
+				return config["COLOR_CLARO1"]
 				
 				
 	def getColorAlerta(self, alerta):
 		if alerta == "roja":
-			return self.config["COLOR_ALERTA_ROJA"]
+			return config["COLOR_ALERTA_ROJA"]
 		elif alerta == "verde":
-			return self.config["COLOR_ALERTA_VERDE"]
+			return config["COLOR_ALERTA_VERDE"]
 							
 		
 	""" Dibuja los cuadros del tablero. """	
@@ -322,7 +324,8 @@ class Grafico:
 			self.dibujarFicha(cuadrox, cuadroy)
 		
 		
-	""" Dibuja el camino iluminado de la ficha seleccionada. """	
+	""" Dibuja el camino iluminado de la ficha seleccionada. 
+	"""	
 	def dibujarCaminoIluminado(self, cuadrox, cuadroy):
 		camino = self.tablero.getCamino()
 		if cuadrox != None and cuadroy != None: 
@@ -338,14 +341,17 @@ class Grafico:
 		for cuadro in listaCuadros:
 			self.dibujarCuadroIluminado(cuadro[0], cuadro[1], (), alerta)
 	
-	""" Dibuja una ficha (sirve para las fichas del panel. """
+	
+	""" Dibuja una ficha (sirve para las fichas del panel. 
+	"""
 	def dibujarFichaIndividual(self, i, coordX, coordY):
 		iconoParaDibujar = pygame.transform.smoothscale(self.IMAGENES[i], 
 			(int(self.LARGO_CUADRO * 0.50), int(self.ANCHO_CUADRO * 0.75)))
 		self.SUPERFICIE.blit(iconoParaDibujar, (coordX, coordY))
 	
 	
-	""" Dibuja los iconos de los paneles superior e inferior del tablero de juego. """
+	""" Dibuja los iconos de los paneles superior e inferior del tablero de juego. 
+	"""
 	def dibujarPanel(self):
 		coordX = self.MARGEN_X + int((self.ANCHO_CUADRO - int(self.ANCHO_CUADRO * 0.50)) / 2)
 		coordY = int((self.LARGO_CUADRO - int(self.LARGO_CUADRO * 0.75)) / 2)
@@ -368,7 +374,8 @@ class Grafico:
 		self.dibujarFichaIndividual(2, coordX, coordY)
 		
 		
-	""" Dibuja una hilera en la pantalla. """
+	""" Dibuja una hilera en la pantalla. 
+	"""
 	def dibujarTexto(self, texto, color, coordx, coordy):
 		superfTexto = self.objFuente.render(texto, True, color)
 		rectTexto = superfTexto.get_rect()
@@ -378,36 +385,32 @@ class Grafico:
 	
 	
 	""" Dibuja todos los textos de la pantalla. """
-	def dibujarTextos(self, jugAct, c1, c2, jaque, jaqueMate, peligro, gano=""):
-		color1 = self.config["COLOR_TEXTO"]
-		color2 = self.config["COLOR_TEXTO"]
-		textoJ1 = 'Jugador 1, tu turno.' if jugAct == "jugador1" else ''
-		textoJ2 = 'Jugador 2, tu turno.' if jugAct == "jugador2" else ''
+	def dibujarTextos(self, jaque, jaqueMate, peligro, gano=""):
+		color1 = config["COLOR_TEXTO"]
+		color2 = config["COLOR_TEXTO"]
+		textoJ1 = 'Jugador 1, tu turno.' if self.jugador.getJugador() == Jugador.jugador1 else ''
+		textoJ2 = 'Jugador 2, tu turno.' if self.jugador.getJugador() == Jugador.jugador2 else ''
 		
 		if jaque:
 			textoJ1 = 'Jugador 1, Jaque'
-			color1 = self.logico.getColorAlerta("roja")
+			color1 = self.getColorAlerta("roja")
 		elif jaqueMate:
 			textoJ1 = 'Jugador 1, JaqueMate'
-			color1 = self.logico.getColorAlerta("roja")
+			color1 = self.getColorAlerta("roja")
 			
 		if peligro:
 			textoJ2 = 'Jugador 2, vigila tu rey'
-			color2 = self.logico.getColorAlerta("roja")
+			color2 = self.getColorAlerta("roja")
 
-		if gano == "jugador1":
+		if gano == Jugador.jugador1:
 			textoJ1 = 'Jugador 1, ganaste.'
 			textoJ2 = ""
-			color1 = self.logico.getColorAlerta("verde")
-		elif gano == "jugador2":
+			color1 = self.getColorAlerta("verde")
+		elif gano == Jugador.jugador2:
 			textoJ2 = 'Jugador 2, ganaste.'
 			textoJ1 = ""
-			color2 = self.logico.getColorAlerta("verde")
-			
-		
-		fichasC1 = 'x'+str(c1)
-		fichasC2 = 'x'+str(c2)
-		
+			color2 = self.getColorAlerta("verde")
+	
 		coordX = self.MARGEN_X + self.LARGO_CUADRO + int((self.ANCHO_CUADRO - int(self.ANCHO_CUADRO * 0.50)) / 2)
 		coordY = int(self.ANCHO_CUADRO / 2)
 		self.dibujarTexto(textoJ1, color1, coordX, coordY)
@@ -417,24 +420,14 @@ class Grafico:
 		
 		self.dibujarTexto(textoJ2, color2, coordX, coordY)
 		
-		coordX = self.LARGO_VENTANA - self.MARGEN_X - self.LARGO_CUADRO + int((self.ANCHO_CUADRO - int(self.ANCHO_CUADRO * 0.50)) / 2)
-		coordY = int(self.ANCHO_CUADRO / 2)
-		
-		self.dibujarTexto(fichasC1, self.config["COLOR_TEXTO"], coordX, coordY)	
-
-		coordX = self.LARGO_VENTANA - self.MARGEN_X - self.LARGO_CUADRO + int((self.ANCHO_CUADRO - int(self.ANCHO_CUADRO * 0.50)) / 2)
-		coordY = self.ANCHO_VENTANA + self.MARGEN_Y + self.MARGEN_X + int(self.ANCHO_CUADRO / 2)
-		
-		self.dibujarTexto(fichasC2, self.config["COLOR_TEXTO"], coordX, coordY)
-		
 		
 	""" Dibuja los cuadros y las fichas del tablero. """	
-	def dibujarVentana(self, jugador, jaque, jaqueMate, peligro, gano=""):
-		self.SUPERFICIE.fill(self.config["COLOR_FONDO"])
-		pygame.draw.rect(self.SUPERFICIE, self.config["COLOR_MARGEN"], (0, self.ANCHO_CUADRO, (self.LARGO_VENTANA + 2*self.MARGEN_X), (self.ANCHO_VENTANA + 2*self.MARGEN_X)), 0)
+	def dibujarVentana(self, jaque, jaqueMate, peligro, gano=""):
+		self.SUPERFICIE.fill(config["COLOR_FONDO"])
+		pygame.draw.rect(self.SUPERFICIE, config["COLOR_MARGEN"], (0, self.ANCHO_CUADRO, (self.LARGO_VENTANA + 2*self.MARGEN_X), (self.ANCHO_VENTANA + 2*self.MARGEN_X)), 0)
 		
 		self.dibujarPanel()
-		self.dibujarTextos(jugador.getJugador(), jugador.getFichasComidas(1), jugador.getFichasComidas(2), jaque, jaqueMate, peligro, gano)
+		self.dibujarTextos(jaque, jaqueMate, peligro, gano)
 		self.dibujarCuadros()
 		self.dibujarFichas()
 
@@ -444,13 +437,13 @@ class Grafico:
 #  referenciarlas posteriormente mantiene una matriz de punteros a las fichas                             # 
 ###########################################################################################################
 class Tablero(object):
-	config = None
 	jugador = None
 	tablero = []
 	camino = []
 	
-	def __init__(self, config, jugador):
-		self.config = config
+	""" Crea las fichas del tablero de juego 
+	"""
+	def __init__(self, jugador):
 		self.jugador = jugador
 		blanca = config["BLANCA"]
 		negra = config["NEGRA"]
@@ -461,16 +454,16 @@ class Tablero(object):
 				clase = ()
 				# asignar ficha
 				if i == centro and j == centro:
-					ficha = Rey(i, j, config["TAMANO"])
+					ficha = Rey(i, j)
 				else:
 					if len(blanca) > 0 and (i, j) == blanca[0]:
-						ficha = Blanca(i, j, config["TAMANO"])
+						ficha = Blanca(i, j)
 						blanca.remove((i,j))
 					elif len(negra) > 0 and (i, j) == negra[0]: 
-						ficha = Negra(i, j, config["TAMANO"])
+						ficha = Negra(i, j)
 						negra.remove((i,j))
 					else:
-						ficha = Ficha(i, j, config["TAMANO"])
+						ficha = Ficha(i, j)
 				# asociar punteros
 				if len(self.tablero) > 0:
 					ficha.arr = self.tablero[len(self.tablero)-1][j]
@@ -481,7 +474,7 @@ class Tablero(object):
 				fila.append(ficha)
 			self.tablero.append(fila)
 		
-
+	
 	def getTipoFicha(self, x, y):
 		return type(self.tablero[x][y])
 		
@@ -521,9 +514,8 @@ class Tablero(object):
 		
 		
 	def comerFichas(self, lista):
-		print lista
 		for x, y in lista:
-			self.tablero[x][y] = Ficha(x, y, config["TAMANO"])
+			self.tablero[x][y] = Ficha(x, y)
 		
 		
 	""" Reacomoda los punteros de las fichas, lo hace de una forma ineficiente
@@ -533,9 +525,9 @@ class Tablero(object):
 			for j in range(len(self.tablero[i])):
 				self.tablero[i][j].x, self.tablero[i][j].y = i, j
 				self.tablero[i][j].arr = self.tablero[i-1][j] if i > 0 else None
-				self.tablero[i][j].aba = self.tablero[i+1][j] if i < self.config["TAMANO"]-1 else None
+				self.tablero[i][j].aba = self.tablero[i+1][j] if i < config["TAMANO"]-1 else None
 				self.tablero[i][j].izq = self.tablero[i][j-1] if j > 0 else None
-				self.tablero[i][j].der = self.tablero[i][j+1] if j < self.config["TAMANO"]-1 else None
+				self.tablero[i][j].der = self.tablero[i][j+1] if j < config["TAMANO"]-1 else None
 				
 				
 	def mover(self, ox, oy, dx, dy):
@@ -599,11 +591,10 @@ class Ficha(object):
 	
 	""" Construye una nueva ficha 
 	"""
-	def __init__(self, x, y, t):
+	def __init__(self, x, y):
 		self.x = x
 		self.y = y
-		self.TAMANO_TABLERO = t
-		
+		self.TAMANO_TABLERO = config["TAMANO"]
 	
 	""" Devuelve las coordenadas de la ficha
 	"""
@@ -703,20 +694,20 @@ class Ficha(object):
 #  Clase que hereda de Ficha y representa las fichas del jugador 1                                        #
 ###########################################################################################################	
 class Negra(Ficha):
-	def __init__(self, i, j, t):
+	def __init__(self, i, j):
 		self.aliado = Negra
 		self.enemigo = Blanca
-		Ficha.__init__(self, i, j, t)
+		Ficha.__init__(self, i, j)
 	
 
 ################################################# Blanca ##################################################
 #  Clase que hereda de Ficha y representa las fichas del jugador 2, a excepción del rey                   #
 ###########################################################################################################	
 class Blanca(Ficha):
-	def __init__(self, i, j, t):
+	def __init__(self, i, j):
 		self.aliado = Blanca
 		self.enemigo = Negra
-		Ficha.__init__(self, i, j, t)
+		Ficha.__init__(self, i, j)
 		
 
 ################################################## Rey ####################################################
@@ -724,10 +715,10 @@ class Blanca(Ficha):
 ###########################################################################################################		
 class Rey(Blanca):
 	
-	def __init__(self, i, j, t):
+	def __init__(self, i, j):
 		self.aliado = Blanca
 		self.enemigo = Negra
-		Blanca.__init__(self, i, j, t)
+		Blanca.__init__(self, i, j)
 
 	
 	def verificarLimites(self):
