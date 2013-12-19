@@ -723,14 +723,40 @@ class Rey(Blanca):
 	
 	def verificarLimites(self):
 		c = 0
-		if type(self.arr) == self.enemigo:
+		centro = (((config["TAMANO"]-1) / 2), ((config["TAMANO"]-1) / 2))
+		
+		if self.arr == None or type(self.arr) == self.enemigo:
 			c += 1
-		if type(self.aba) == self.enemigo:
+		elif type(self.arr) == self.aliado:
+			if type(self.arr.arr) == self.enemigo:
+				c += 1
+		elif self.arr.getCoord() == centro:
 			c += 1
-		if type(self.der) == self.enemigo:
+			
+		if self.aba == None or type(self.aba) == self.enemigo:
 			c += 1
-		if type(self.izq) == self.enemigo:
+		elif type(self.aba) == self.aliado:
+			if type(self.aba.aba) == self.enemigo:
+				c += 1
+		elif self.aba.getCoord() == centro:
 			c += 1
+
+		if self.izq == None or type(self.izq) == self.enemigo:
+			c += 1
+		elif type(self.izq) == self.aliado:
+			if type(self.izq.izq) == self.enemigo:
+				c += 1
+		elif self.izq.getCoord() == centro:
+			c += 1
+			
+		if self.der == None or type(self.der) == self.enemigo:
+			c += 1
+		elif type(self.der) == self.aliado:
+			if type(self.der.der) == self.enemigo:
+				c += 1
+		elif self.der.getCoord() == centro:
+			c += 1
+		print c
 		return c
 
 	def estaEnPeligro(self):
