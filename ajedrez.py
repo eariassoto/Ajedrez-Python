@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import random, pygame, sys, os
+import random, pygame, os
 from pygame.locals import *
 from copy import deepcopy
 
@@ -9,146 +9,115 @@ from copy import deepcopy
 #                       Maneja los eventos del mouse y el loop principal del juego                        #
 ###########################################################################################################
 class Main:	
-	
-	LARGO_VENTANA = None
-	ANCHO_VENTANA = None
-	
-	# almacenaran las instancias de los objetos.
-	jugador = None
-	tablero = None
-	grafico = None
-	
-	# velocidad promedio de cuadros por segundo.
-	FPS = 114
-	
-	FPSCLOCK = None
-	SUPERFICIE = None
-	
-	# boolean para controlar estas de juego.
-	seleccion = False
-	jaque = False
-	jaqueMate = False
-	peligro = False
-	
-	# sirve para almacenar la posicion de la ficha seleccionada por el clic
-	fichaSeleccion = ""
-	
+
 	""" Constructor """
 	def __init__(self, config):
-		self.LARGO_VENTANA = config["LARGO_VENTANA"]
-		self.ANCHO_VENTANA = config["ANCHO_VENTANA"]
-		
+	
 		# iniciar el modulo pygame y el objeto FPS.
 		pygame.init()
-		self.FPSCLOCK = pygame.time.Clock()
-
+		FPSCLOCK = pygame.time.Clock()
 		
-		# instancia de clases 
-		self.jugador = Jugador()
-		self.tablero = Tablero(self.jugador)
-		self.grafico = Grafico(self.jugador, self.tablero, self.SUPERFICIE)
+		# velocidad promedio de cuadros por segundo.
+		FPS = 114
+				
+		# almacenaran las instancias de los objetos.
+		jugador = Jugador()
+		tablero = Tablero(jugador)
+		grafico = Grafico(jugador, tablero)
 		
 		
-	def iniciar(self):
+		
+		# boolean para controlar estado de ficha seleccionada.
+		seleccion = False
+		
+		# eventos que puede disparar el usuario
+		CAMBIO_TURNO = pygame.USEREVENT+1
+		JAQUE = pygame.USEREVENT+2
+		JAQUE_MATE = pygame.USEREVENT+3
+		REY_PELIGRO = pygame.USEREVENT+4
+		GAME_OVER = pygame.USEREVENT+5
+		
+		
+		# sirve para almacenar la posicion de la ficha seleccionada por el clic
+		fichaSeleccion = ""
+		
 		# almacenan las coordenadas del mouse
 		mousex = 0 
 		mousey = 0 
-	
-		while True: # loop principal del juego
+		
+		
+		gameOver = False
+		while not gameOver: # loop principal del juego
 		
 			mouseClic = False
 			
 			# dibujar ventana.
-			self.grafico.dibujarVentana(self.jaque, self.jaqueMate, self.peligro)
-			# TODO
+			grafico.dibujarVentana()
+			if seleccion:
+				grafico.dibujarCaminoIluminado(None, None)
+			"""# TODO
 			if self.jaque or self.jaqueMate:
 				self.grafico.dibujarAlerta(self.calculos.getEsquinas(), "verde")
 			if self.peligro:
 				self.grafico.dibujarAlerta(self.calculos.getPeligroRey(), "roja")
 			if self.seleccion:
 				self.grafico.dibujarCaminoIluminado(None, None)
-				
+			"""	
 			# manejo de eventos.
 			for evento in pygame.event.get():
 				if evento.type == QUIT or (evento.type == KEYUP and evento.key == K_ESCAPE):
 					pygame.quit()
-					sys.exit()
-				elif not mouseClic and evento.type == MOUSEMOTION:
-					mousex, mousey = evento.pos 
-				elif not mouseClic and evento.type == MOUSEBUTTONUP:
-					mousex, mousey = evento.pos
-					mouseClic = True	
-					
-			# comprobar si el mouse esta actualmente en un cuadro
-			cuadrox, cuadroy = self.grafico.getCuadroPixel(mousex, mousey)					
-
-			if (cuadrox, cuadroy) != (None, None) and not mouseClic:
-				if self.tablero.hayFichaTurno(cuadrox, cuadroy):
-					# el mouse esta sobre un cuadro seleccionable
-					self.grafico.dibujarCuadroIluminado(cuadrox, cuadroy)
-				elif self.tablero.sobreCaminoActual(cuadrox, cuadroy) and self.seleccion:
-					# el mouse esta sobre un cuadro del camino de la ficha
-					self.grafico.dibujarCuadroIluminado(cuadrox, cuadroy, self.fichaSeleccion)
-					# si esa posible jugada puede comer alguna ficha
-					if self.tablero.puedeComerFicha(self.fichaSeleccion[0], self.fichaSeleccion[1], cuadrox, cuadroy):
-						self.grafico.dibujarAlerta(self.tablero.getListaComerFicha(cuadrox, cuadroy), "roja")
-					
-			elif cuadrox != None and cuadroy != None and mouseClic:			
-				if self.tablero.hayFichaTurno(cuadrox, cuadroy):
-					# mouse hizo clic sobre alguna ficha de turno
-					self.tablero.setCamino(cuadrox, cuadroy)
-					self.grafico.dibujarCaminoIluminado(cuadrox, cuadroy)
-					self.seleccion = True
-					self.fichaSeleccion = (cuadrox, cuadroy)
-					
-				elif self.tablero.estaEnCamino(cuadrox, cuadroy) and self.seleccion:
-					# mouse hizo clic en una posicion del camino
-					self.tablero.mover(self.fichaSeleccion[0], self.fichaSeleccion[1], cuadrox, cuadroy)
-					self.seleccion = False
+					os._exit(0)
+				elif evento.type == GAME_OVER:
+					gameOver = True
+				else:
+					if not mouseClic and evento.type == MOUSEMOTION:
+						mousex, mousey = evento.pos 
+					elif not mouseClic and evento.type == MOUSEBUTTONUP:
+						mousex, mousey = evento.pos
+						mouseClic = True	
+					elif evento.type == CAMBIO_TURNO:
+						jugador.cambioTurno()
 			
-					# comprobar el estado del juego
-					if self.jugador.jugadorActualEs(Jugador.jugador2) and self.tablero.reyEnEsquina():
-						# El rey ha llegado a una esquina
-						self.finJuego(Jugador.jugador2)
-					else:
-						encasillado = self.tablero.verificarLimitesRey()
-						if encasillado == 4:
-							# El rey ha sido encasillado, jaquemate
-							self.finJuego(Jugador.jugador1)
-						else:
-							if encasillado == 3:
-								# El rey puede estar en peligro
-								if self.tablero.reyEnPeligro():
-									# el rey esta en peligro
-									self.grafico.dibujarAlerta(self.calculos.getPeligroRey(), "roja")
-									self.peligro = True
-							else:
-								self.peligro = False
-							
-							esquinas = self.tablero.esquinasRey()
-							if esquinas == 1:
-								# hay una situacion de jaque 
-								self.jaque = True
-								self.jaqueMate = False
-								self.grafico.dibujarAlerta(self.calculos.getEsquinas(), "verde")	
-							elif esquinas == 2:
-								# hay una situacion de jaquemate
-								self.jaque = False
-								self.jaqueMate = True
-								self.grafico.dibujarAlerta(self.calculos.getEsquinas(), "verde")	
-							else:
-								self.jaque = False
-								self.jaqueMate = False
-								
-					self.jugador.switchJugador()
+			if not gameOver:
+				# comprobar si el mouse esta actualmente en un cuadro
+				cuadrox, cuadroy = grafico.getCuadroPixel(mousex, mousey)					
+
+				if (cuadrox, cuadroy) != (None, None) and not mouseClic:
+					if tablero.hayFichaTurno(cuadrox, cuadroy):
+						# el mouse esta sobre un cuadro seleccionable
+						grafico.dibujarCuadroIluminado(cuadrox, cuadroy)
+					elif tablero.sobreCaminoActual(cuadrox, cuadroy) and seleccion:
+						# el mouse esta sobre un cuadro del camino de la ficha
+						grafico.dibujarCuadroIluminado(cuadrox, cuadroy, fichaSeleccion)
+						# si esa posible jugada puede comer alguna ficha
+						if tablero.puedeComerFicha(fichaSeleccion[0], fichaSeleccion[1], cuadrox, cuadroy):
+							grafico.dibujarAlerta(tablero.getListaComerFicha(cuadrox, cuadroy), "roja")
+						
+				elif cuadrox != None and cuadroy != None and mouseClic:			
+					if tablero.hayFichaTurno(cuadrox, cuadroy):
+						# mouse hizo clic sobre alguna ficha de turno
+						tablero.setCamino(cuadrox, cuadroy)
+						grafico.dibujarCaminoIluminado(cuadrox, cuadroy)
+						seleccion = True
+						fichaSeleccion = (cuadrox, cuadroy)
+						
+					elif tablero.estaEnCamino(cuadrox, cuadroy) and seleccion:
+						# mouse hizo clic en una posicion del camino
+						tablero.mover(fichaSeleccion[0], fichaSeleccion[1], cuadrox, cuadroy)
+						seleccion = False			
+						evento = pygame.event.Event(CAMBIO_TURNO)
+						pygame.event.post(evento)
+						
+				tablero.comprobarEstado()
 			
 			pygame.display.update()	
-			self.FPSCLOCK.tick(self.FPS)	
+			FPSCLOCK.tick(FPS)	
 	
 	
-	""" Animaciones para el fin del juego """
+	""" Animaciones para el fin del juego 
 	def finJuego(self, ganador):
-		self.grafico.dibujarVentana(self.jaque, self.jaqueMate, self.peligro, ganador)
+		self.grafico.dibujarVentana()
 		pygame.display.update()
 		pygame.time.wait(5000)
 		self.logico.resetearTablero()
@@ -157,8 +126,8 @@ class Main:
 		self.jaqueMate = False
 		self.peligro = False
 		self.fichaSeleccion = ""
-		self.jugador.nuevoJuego()	
-	
+		self.jugador.nuevoJuego()"""
+		
 	
 ################################################ Grafico ##################################################
 #                                 Maneja la parte gráfica del programa                                    # 
@@ -182,10 +151,9 @@ class Grafico:
 	tablero = None
 	jugador = None
 	
-	def __init__(self, jugador, tablero, superficie):
+	def __init__(self, jugador, tablero):
 		self.tablero = tablero
 		self.jugador = jugador
-		self.SUPERFICIE = superficie
 		self.LARGO_VENTANA = config["LARGO_VENTANA"]
 		self.ANCHO_VENTANA = config["ANCHO_VENTANA"]
 		self.TAMANO = config["TAMANO"]
@@ -385,49 +353,25 @@ class Grafico:
 	
 	
 	""" Dibuja todos los textos de la pantalla. """
-	def dibujarTextos(self, jaque, jaqueMate, peligro, gano=""):
-		color1 = config["COLOR_TEXTO"]
-		color2 = config["COLOR_TEXTO"]
-		textoJ1 = 'Jugador 1, tu turno.' if self.jugador.getJugador() == Jugador.jugador1 else ''
-		textoJ2 = 'Jugador 2, tu turno.' if self.jugador.getJugador() == Jugador.jugador2 else ''
+	def dibujarMensaje(self, t, j):
+		color = config["COLOR_TEXTO"]
+		texto = t
 		
-		if jaque:
-			textoJ1 = 'Jugador 1, Jaque'
-			color1 = self.getColorAlerta("roja")
-		elif jaqueMate:
-			textoJ1 = 'Jugador 1, JaqueMate'
-			color1 = self.getColorAlerta("roja")
-			
-		if peligro:
-			textoJ2 = 'Jugador 2, vigila tu rey'
-			color2 = self.getColorAlerta("roja")
+		coordX = self.MARGEN_X + self.LARGO_CUADRO + int((self.ANCHO_CUADRO - int(self.ANCHO_CUADRO * 0.50)) / 2)
+		coordY = int(self.ANCHO_CUADRO / 2) if j == Jugador.jugador1 else self.ANCHO_VENTANA + self.MARGEN_Y + self.MARGEN_X + int(self.ANCHO_CUADRO / 2)
+		self.dibujarTexto(texto, color, coordX, coordY)
 
-		if gano == Jugador.jugador1:
-			textoJ1 = 'Jugador 1, ganaste.'
-			textoJ2 = ""
-			color1 = self.getColorAlerta("verde")
-		elif gano == Jugador.jugador2:
-			textoJ2 = 'Jugador 2, ganaste.'
-			textoJ1 = ""
-			color2 = self.getColorAlerta("verde")
-	
-		coordX = self.MARGEN_X + self.LARGO_CUADRO + int((self.ANCHO_CUADRO - int(self.ANCHO_CUADRO * 0.50)) / 2)
-		coordY = int(self.ANCHO_CUADRO / 2)
-		self.dibujarTexto(textoJ1, color1, coordX, coordY)
-		
-		coordX = self.MARGEN_X + self.LARGO_CUADRO + int((self.ANCHO_CUADRO - int(self.ANCHO_CUADRO * 0.50)) / 2)
-		coordY = self.ANCHO_VENTANA + self.MARGEN_Y + self.MARGEN_X + int(self.ANCHO_CUADRO / 2)
-		
-		self.dibujarTexto(textoJ2, color2, coordX, coordY)
 		
 		
 	""" Dibuja los cuadros y las fichas del tablero. """	
-	def dibujarVentana(self, jaque, jaqueMate, peligro, gano=""):
+	def dibujarVentana(self):
 		self.SUPERFICIE.fill(config["COLOR_FONDO"])
 		pygame.draw.rect(self.SUPERFICIE, config["COLOR_MARGEN"], (0, self.ANCHO_CUADRO, (self.LARGO_VENTANA + 2*self.MARGEN_X), (self.ANCHO_VENTANA + 2*self.MARGEN_X)), 0)
 		
 		self.dibujarPanel()
-		self.dibujarTextos(jaque, jaqueMate, peligro, gano)
+		j = self.jugador.getJugador()
+		turno = "Jugador 1, tu turno." if j == Jugador.jugador1 else "Jugador 2, tu turno"
+		self.dibujarMensaje(turno, j)
 		self.dibujarCuadros()
 		self.dibujarFichas()
 
@@ -444,6 +388,7 @@ class Tablero(object):
 	""" Crea las fichas del tablero de juego 
 	"""
 	def __init__(self, jugador):
+		rey = None
 		self.jugador = jugador
 		blanca = config["BLANCA"]
 		negra = config["NEGRA"]
@@ -455,6 +400,7 @@ class Tablero(object):
 				# asignar ficha
 				if i == centro and j == centro:
 					ficha = Rey(i, j)
+					rey = ficha
 				else:
 					if len(blanca) > 0 and (i, j) == blanca[0]:
 						ficha = Blanca(i, j)
@@ -538,23 +484,27 @@ class Tablero(object):
 		if self.tablero[dx][dy].comer(self.tablero[dx][dy]) != []:
 			self.comerFichas(self.tablero[dx][dy].getListaComer())
 			self.reacomodarPunteros()		
+		
+		
+	def comprobarEstado(self):
+		# primero comprobar si el rey ya ha llegado a una esquina
+		coord = rey.getCoord()
+		fin = config["TAMANO"]-1
+		if coord == (0,0) or coord == (0, fin) or coord == (fin, 0) or coord == (fin, fin):
+			evento = pygame.event.Event(GAME_OVER)
+			jugador.setGanador(Jugador.jugador2)
+		else:
+			# buscar cuantos lados del rey estan asediados por fichas enemigas
+			limitesRey = rey.getLimites()
+			if limitesRey == 4:
+				evento = pygame.event.Event(GAME_OVER)
+				jugador.setGanador(Jugador.jugador1)
+			else:
+				if limitesRey == 3:
+					pass
 				
-		
-	def reyEnEsquina(self):
-		for (x, y) in ((0,0),(0,config["TAMANO"]-1),(config["TAMANO"]-1,0),(config["TAMANO"]-1,config["TAMANO"]-1)):
-			if type(self.tablero[x][y]) == Rey:
-				return True
-		return False
-		
-	def buscarRey(self):
-		for fila in self.tablero:
-			for ficha in fila:
-				if type(ficha) == Rey:
-					return ficha
-					
-					
-	def verificarLimitesRey(self):
-		self.buscarRey().verificarLimites()
+	
+
 		
 		
 	def reyEnPeligro(self):
@@ -721,16 +671,18 @@ class Rey(Blanca):
 		Blanca.__init__(self, i, j)
 
 	
-	def verificarLimites(self):
+	def getLimites(self):
 		c = 0
-		centro = (((config["TAMANO"]-1) / 2), ((config["TAMANO"]-1) / 2))
+		centro = (config["TAMANO"]-1) / 2
+		fin = config["TAMANO"]-1
+		restricciones = ((centro, centro), (0,0), (fin, 0), (0, fin), (fin, fin))
 		
 		if self.arr == None or type(self.arr) == self.enemigo:
 			c += 1
 		elif type(self.arr) == self.aliado:
 			if type(self.arr.arr) == self.enemigo:
 				c += 1
-		elif self.arr.getCoord() == centro:
+		elif restricciones.count(self.arr.getCoord()) == 1:
 			c += 1
 			
 		if self.aba == None or type(self.aba) == self.enemigo:
@@ -738,7 +690,7 @@ class Rey(Blanca):
 		elif type(self.aba) == self.aliado:
 			if type(self.aba.aba) == self.enemigo:
 				c += 1
-		elif self.aba.getCoord() == centro:
+		elif restricciones.count(self.aba.getCoord()) == 1:
 			c += 1
 
 		if self.izq == None or type(self.izq) == self.enemigo:
@@ -746,7 +698,7 @@ class Rey(Blanca):
 		elif type(self.izq) == self.aliado:
 			if type(self.izq.izq) == self.enemigo:
 				c += 1
-		elif self.izq.getCoord() == centro:
+		elif restricciones.count(self.izq.getCoord()) == 1:
 			c += 1
 			
 		if self.der == None or type(self.der) == self.enemigo:
@@ -754,8 +706,9 @@ class Rey(Blanca):
 		elif type(self.der) == self.aliado:
 			if type(self.der.der) == self.enemigo:
 				c += 1
-		elif self.der.getCoord() == centro:
+		elif restricciones.count(self.der.getCoord()) == 1:
 			c += 1
+			
 		print c
 		return c
 
@@ -830,7 +783,7 @@ class Jugador(object):
 		
 		
 	""" Cambia el turno. """	
-	def switchJugador(self):
+	def cambioTurno(self):
 		if self.jugadorActual == self.jugador1:
 			self.jugadorActual = self.jugador2
 		else:
