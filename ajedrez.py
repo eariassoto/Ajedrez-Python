@@ -16,36 +16,22 @@ class Main:
 		# iniciar el modulo pygame y el objeto FPS.
 		pygame.init()
 		FPSCLOCK = pygame.time.Clock()
-		
-		# velocidad promedio de cuadros por segundo.
-		FPS = 114
 				
 		# almacenaran las instancias de los objetos.
 		jugador = Jugador()
 		tablero = Tablero(jugador)
 		grafico = Grafico(jugador, tablero)
 		
-		
-		
 		# boolean para controlar estado de ficha seleccionada.
 		seleccion = False
-		
-		# eventos que puede disparar el usuario
-		CAMBIO_TURNO = pygame.USEREVENT+1
-		JAQUE = pygame.USEREVENT+2
-		JAQUE_MATE = pygame.USEREVENT+3
-		REY_PELIGRO = pygame.USEREVENT+4
-		GAME_OVER = pygame.USEREVENT+5
-		
-		
+			
 		# sirve para almacenar la posicion de la ficha seleccionada por el clic
 		fichaSeleccion = ""
 		
 		# almacenan las coordenadas del mouse
 		mousex = 0 
 		mousey = 0 
-		
-		
+
 		gameOver = False
 		while not gameOver: # loop principal del juego
 		
@@ -68,7 +54,7 @@ class Main:
 				if evento.type == QUIT or (evento.type == KEYUP and evento.key == K_ESCAPE):
 					pygame.quit()
 					os._exit(0)
-				elif evento.type == GAME_OVER:
+				elif evento.type == pygame.USEREVENT+config["GAME_OVER"]:
 					gameOver = True
 				else:
 					if not mouseClic and evento.type == MOUSEMOTION:
@@ -76,8 +62,11 @@ class Main:
 					elif not mouseClic and evento.type == MOUSEBUTTONUP:
 						mousex, mousey = evento.pos
 						mouseClic = True	
-					elif evento.type == CAMBIO_TURNO:
+					elif evento.type == pygame.USEREVENT+config["CAMBIO_TURNO"]:
 						jugador.cambioTurno()
+					elif evento.type == pygame.USEREVENT+config["REY_PELIGRO"]:
+						print "lol"
+						grafico.dibujarAlerta(evento.dict["alerta"], "roja")
 			
 			if not gameOver:
 				# comprobar si el mouse esta actualmente en un cuadro
@@ -106,13 +95,12 @@ class Main:
 						# mouse hizo clic en una posicion del camino
 						tablero.mover(fichaSeleccion[0], fichaSeleccion[1], cuadrox, cuadroy)
 						seleccion = False			
-						evento = pygame.event.Event(CAMBIO_TURNO)
+						evento = pygame.event.Event(pygame.USEREVENT+config["CAMBIO_TURNO"])
 						pygame.event.post(evento)
-						
-				tablero.comprobarEstado()
+						tablero.comprobarEstado()
 			
 			pygame.display.update()	
-			FPSCLOCK.tick(FPS)	
+			FPSCLOCK.tick(114)	
 	
 	
 	""" Animaciones para el fin del juego 
@@ -381,6 +369,7 @@ class Grafico:
 #  referenciarlas posteriormente mantiene una matriz de punteros a las fichas                             # 
 ###########################################################################################################
 class Tablero(object):
+	rey = None
 	jugador = None
 	tablero = []
 	camino = []
@@ -388,7 +377,7 @@ class Tablero(object):
 	""" Crea las fichas del tablero de juego 
 	"""
 	def __init__(self, jugador):
-		rey = None
+		self.rey = None
 		self.jugador = jugador
 		blanca = config["BLANCA"]
 		negra = config["NEGRA"]
@@ -400,7 +389,7 @@ class Tablero(object):
 				# asignar ficha
 				if i == centro and j == centro:
 					ficha = Rey(i, j)
-					rey = ficha
+					self.rey = ficha
 				else:
 					if len(blanca) > 0 and (i, j) == blanca[0]:
 						ficha = Blanca(i, j)
@@ -486,30 +475,48 @@ class Tablero(object):
 			self.reacomodarPunteros()		
 		
 		
+	def buscarRey(self):
+		tablero = self.tablero
+		for fila in tablero:
+			for ficha in fila:
+				if type(ficha) == Rey:
+					return ficha
+					
+					
 	def comprobarEstado(self):
 		# primero comprobar si el rey ya ha llegado a una esquina
-		coord = rey.getCoord()
+		rey = self.buscarRey()
 		fin = config["TAMANO"]-1
-		if coord == (0,0) or coord == (0, fin) or coord == (fin, 0) or coord == (fin, fin):
-			evento = pygame.event.Event(GAME_OVER)
+		restricciones = ((0,0), (fin, 0), (0, fin), (fin, fin))
+		
+		if restricciones.count(rey.getCoord()):
+			evento = pygame.event.Event(pygame.USEREVENT+config["GAME_OVER"])
+			pygame.event.post(evento)
 			jugador.setGanador(Jugador.jugador2)
 		else:
 			# buscar cuantos lados del rey estan asediados por fichas enemigas
-			limitesRey = rey.getLimites()
-			if limitesRey == 4:
-				evento = pygame.event.Event(GAME_OVER)
+			caminosLibresRey = rey.getCaminosLibres()
+			if len(caminosLibresRey) == 0:
+				evento = pygame.event.Event(pygame.USEREVENT+config["GAME_OVER"])
+				pygame.event.post(evento)
 				jugador.setGanador(Jugador.jugador1)
 			else:
-				if limitesRey == 3:
+				if len(caminosLibresRey) == 1:
 					# comprobar si el rey esta a punto de perder
-					pass
-				
-	
-
-		
-		
-	def reyEnPeligro(self):
-		self.buscarRey().estaEnPeligro()
+					fichasPeligro = []
+					if caminosLibresRey[0] == 1:
+						rey.buscarPeligro(fichasPeligro, rey.arr, rey.arr.izq, rey.arr.der, config["ARR"], config["DER"], config["IZQ"])
+					elif caminosLibresRey[0] == 2:
+						rey.buscarPeligro(fichasPeligro, rey.aba, rey.aba.der, rey.aba.izq, config["ABA"], config["IZQ"], config["DER"])
+					elif caminosLibresRey[0] == 3:
+						rey.buscarPeligro(fichasPeligro, rey.izq, rey.izq.aba, rey.izq.arr, config["IZQ"], config["ABA"], config["ARR"])
+					elif caminosLibresRey[0] == 4:
+						rey.buscarPeligro(fichasPeligro, rey.der, rey.der.arr, rey.der.aba, config["DER"], config["ARR"], config["ABA"])
+					
+					if len(fichasPeligro) > 0:
+						evento = pygame.event.Event(pygame.USEREVENT+config["REY_PELIGRO"], {"alerta":fichasPeligro})
+						pygame.event.post(evento)
+						
 					
 					
 	def esquinasRey(self):
@@ -551,6 +558,22 @@ class Ficha(object):
 	"""
 	def getCoord(self):
 		return (self.x, self.y)
+	
+	
+	#TODO
+	""" Dada una constante predefinida devuelve un puntero
+	correspondiente a una ficha vecina
+	"""
+	def getPuntero(self, opcion):
+		if opcion == 1:
+			return self.arr
+		elif opcion == 2: 
+			return self.aba
+		elif opcion == 3:
+			return self.izq
+		elif opcion == 4:
+			return self.der	
+	
 	
 	""" Determina si una ficha puede formar parte del 
 	camino de otra. El parametro ficha indica quien 
@@ -672,107 +695,59 @@ class Rey(Blanca):
 		Blanca.__init__(self, i, j)
 
 	
-	def getLimites(self):
-		c = 0
+	def getCaminosLibres(self):
+		# para reducir comprobaciones es mejor buscar los caminos libres
+		caminosLibres = []
 		centro = (config["TAMANO"]-1) / 2
 		fin = config["TAMANO"]-1
 		restricciones = ((centro, centro), (0,0), (fin, 0), (0, fin), (fin, fin))
+		if  type(self.arr) == Ficha:
+			if restricciones.count(self.arr.getCoord()) == 0:
+				caminosLibres.append(1)
+		elif type(self.arr) == Blanca:
+			if type(self.arr.arr) != Negra:
+				caminosLibres.append(1)
 		
-		if self.arr == None or type(self.arr) == self.enemigo:
-			c += 1
-		elif type(self.arr) == self.aliado:
-			if type(self.arr.arr) == self.enemigo:
-				c += 1
-		elif restricciones.count(self.arr.getCoord()) == 1:
-			c += 1
-			
-		if self.aba == None or type(self.aba) == self.enemigo:
-			c += 1
-		elif type(self.aba) == self.aliado:
-			if type(self.aba.aba) == self.enemigo:
-				c += 1
-		elif restricciones.count(self.aba.getCoord()) == 1:
-			c += 1
-
-		if self.izq == None or type(self.izq) == self.enemigo:
-			c += 1
-		elif type(self.izq) == self.aliado:
-			if type(self.izq.izq) == self.enemigo:
-				c += 1
-		elif restricciones.count(self.izq.getCoord()) == 1:
-			c += 1
-			
-		if self.der == None or type(self.der) == self.enemigo:
-			c += 1
-		elif type(self.der) == self.aliado:
-			if type(self.der.der) == self.enemigo:
-				c += 1
-		elif restricciones.count(self.der.getCoord()) == 1:
-			c += 1
-			
-		print c
-		return c
-
-		
-	def getLimiteLibre(self):
-		for l in (self.arr, self.aba, self.der, self.izq):
-			if type(l) == Ficha:
-				return l
+		if type(self.aba) == Ficha:
+			if restricciones.count(self.aba.getCoord()) == 0:
+				caminosLibres.append(2)
+		elif type(self.aba) == Blanca:
+			if type(self.aba.aba) != Negra:
+				caminosLibres.append(2)
 				
+		if type(self.izq) == Ficha:
+			if restricciones.count(self.izq.getCoord()) == 0:
+				caminosLibres.append(3)
+		elif type(self.izq) == Blanca:
+			if type(self.izq.izq) != Negra:
+				caminosLibres.append(3)
 				
-	def estaEnPeligro(self):
-		limite = ()
-		for l in ((self.arr, 1), (self.aba, 2), (self.izq, 3), (self.der, 4)):
-			if type(l[0]) == self.enemigo:
-				limite = l
+		if type(self.der) == Ficha:
+			if restricciones.count(self.der.getCoord()) == 0:
+				caminosLibres.append(4)
+		elif type(self.der) == Blanca:
+			if type(self.der.der) != Negra:
+				caminosLibres.append(4)
+				
+		return caminosLibres
+
+	
+	def buscarPeligro(self, fichasPeligro, fre, izq, der, pF, pI, pD):
+		if fre != None or izq != None or der != None:
+			if type(fre) == Negra:
+				fichasPeligro.append(fre.getCoord())
+			if type(izq) == Negra:
+				fichasPeligro.append(izq.getCoord())
+			if type(der) == Negra:
+				fichasPeligro.append(der.getCoord())
+			
+			sigFre = None if (fre == None or type(fre) != Ficha) else fre.getPuntero(pF)
+			sigIzq = None if (izq == None or type(izq) != Ficha) else izq.getPuntero(pI)
+			sigDer = None if (der == None or type(der) != Ficha) else der.getPuntero(pD)
+			self.buscarPeligro(fichasPeligro, sigFre, sigIzq, sigDer, pF,pI, pD)			
+	
 		
-		if limite[1] == 1:
-			while(limite[0] != None):
-				if type(limite[0]) == self.enemigo:
-					return True
-				else:
-					limite[0] = limite[0].arr
-		elif limite[1] == 2:
-			while(limite[0] != None):
-				if type(limite[0]) == self.enemigo:
-					return True
-				else:
-					limite[0] = limite[0].aba
-		elif limite[1] == 3:
-			while(limite[0] != None):
-				if type(limite[0]) == self.enemigo:
-					return True
-				else:
-					limite[0] = limite[0].izq
-		elif limite[1] == 4:
-			while(limite[0] != None):
-				if type(limite[0]) == self.enemigo:
-					return True
-				else:
-					limite[0] = limite[0].der
-		
-		return False
-		
-		
-	def buscarEsquinas(self):
-		c = 0
-		tmp = self.arr
-		while tmp != None and type(tmp) == self.enemigo:
-			tmp = tmp.arr
-		c += 1 if tmp == None else 0
-		tmp = self.aba
-		while tmp != None and type(tmp) == self.enemigo:
-			tmp = tmp.aba
-		c += 1 if tmp == None else 0
-		tmp = self.izq
-		while tmp != None and type(tmp) == self.enemigo:
-			tmp = tmp.izq
-		c += 1 if tmp == None else 0
-		tmp = self.der
-		while tmp != None and type(tmp) == self.enemigo:
-			tmp = tmp.der
-		c += 1 if tmp == None else 0
-		return c
+	
 		
 
 ################################################ Jugador ##################################################
