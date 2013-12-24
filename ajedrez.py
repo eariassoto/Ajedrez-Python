@@ -501,6 +501,7 @@ class Tablero(object):
 				jugador.setGanador(Jugador.jugador1)
 			else:
 				if limitesRey == 3:
+					# comprobar si el rey esta a punto de perder
 					pass
 				
 	
@@ -712,6 +713,13 @@ class Rey(Blanca):
 		print c
 		return c
 
+		
+	def getLimiteLibre(self):
+		for l in (self.arr, self.aba, self.der, self.izq):
+			if type(l) == Ficha:
+				return l
+				
+				
 	def estaEnPeligro(self):
 		limite = ()
 		for l in ((self.arr, 1), (self.aba, 2), (self.izq, 3), (self.der, 4)):
