@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import random, pygame, os
+import random
+import os
+import pygame
 from pygame.locals import *
 from copy import deepcopy
+from copy import copy
 
 ################################################## Main ###################################################
 #                       Maneja los eventos del mouse y el loop principal del juego                        #
@@ -33,8 +36,7 @@ class Main:
 		mousex = 0 
 		mousey = 0 
 
-		gameOver = False
-		while not gameOver: # loop principal del juego
+		while True: # loop principal del juego
 		
 			mouseClic = False
 			
@@ -49,67 +51,61 @@ class Main:
 					pygame.quit()
 					os._exit(0)
 				elif evento.type == pygame.USEREVENT+config["GAME_OVER"]:
-					gameOver = True
-				else:
-					if not mouseClic and evento.type == MOUSEMOTION:
-						mousex, mousey = evento.pos 
-					elif not mouseClic and evento.type == MOUSEBUTTONUP:
-						mousex, mousey = evento.pos
-						mouseClic = True	
-					elif evento.type == pygame.USEREVENT+config["CAMBIO_TURNO"]:
-						jugador.cambioTurno()
-					elif evento.type == pygame.USEREVENT+config["REY_PELIGRO"]:
-						grafico.dibujarAlerta(evento.dict["alerta"], "roja")
-					elif evento.type == pygame.USEREVENT+config["JAQUE"]:
-						grafico.dibujarAlerta(evento.dict["alerta"], "verde")
+					grafico.dibujarVentana()
+					pygame.display.update()	
+					pygame.time.wait(5000)
+					tablero.generarTablero()
+					jugador.nuevoJuego()
+					seleccion = False
+					grafico.dibujarVentana()
+					pygame.display.update()
+									
+				elif not mouseClic and evento.type == MOUSEMOTION:
+					mousex, mousey = evento.pos 
+				elif not mouseClic and evento.type == MOUSEBUTTONUP:
+					mousex, mousey = evento.pos
+					mouseClic = True	
+				elif evento.type == pygame.USEREVENT+config["CAMBIO_TURNO"]:
+					jugador.cambioTurno()
+				elif evento.type == pygame.USEREVENT+config["REY_PELIGRO"]:
+					grafico.dibujarAlerta(evento.dict["alerta"], "roja")
+				elif evento.type == pygame.USEREVENT+config["JAQUE"]:
+					grafico.dibujarAlerta(evento.dict["alerta"], "verde")
 						
-			if not gameOver:
-				# comprobar si el mouse esta actualmente en un cuadro
-				cuadrox, cuadroy = grafico.getCuadroPixel(mousex, mousey)					
+			# comprobar si el mouse esta actualmente en un cuadro
+			cuadrox, cuadroy = grafico.getCuadroPixel(mousex, mousey)					
 
-				if (cuadrox, cuadroy) != (None, None) and not mouseClic:
-					if tablero.hayFichaTurno(cuadrox, cuadroy):
-						# el mouse esta sobre un cuadro seleccionable
-						grafico.dibujarCuadroIluminado(cuadrox, cuadroy)
-					elif tablero.sobreCaminoActual(cuadrox, cuadroy) and seleccion:
-						# el mouse esta sobre un cuadro del camino de la ficha
-						grafico.dibujarCuadroIluminado(cuadrox, cuadroy, fichaSeleccion)
-						# si esa posible jugada puede comer alguna ficha
-						if tablero.puedeComerFicha(fichaSeleccion[0], fichaSeleccion[1], cuadrox, cuadroy):
-							grafico.dibujarAlerta(tablero.getListaComerFicha(cuadrox, cuadroy), "roja")
-						
-				elif cuadrox != None and cuadroy != None and mouseClic:			
-					if tablero.hayFichaTurno(cuadrox, cuadroy):
-						# mouse hizo clic sobre alguna ficha de turno
-						tablero.setCamino(cuadrox, cuadroy)
-						grafico.dibujarCaminoIluminado(cuadrox, cuadroy)
-						seleccion = True
-						fichaSeleccion = (cuadrox, cuadroy)
-						
-					elif tablero.estaEnCamino(cuadrox, cuadroy) and seleccion:
-						# mouse hizo clic en una posicion del camino
-						tablero.mover(fichaSeleccion[0], fichaSeleccion[1], cuadrox, cuadroy)
-						seleccion = False			
-						evento = pygame.event.Event(pygame.USEREVENT+config["CAMBIO_TURNO"])
-						pygame.event.post(evento)
-				tablero.comprobarEstado()
+			if (cuadrox, cuadroy) != (None, None) and not mouseClic:
+				if tablero.hayFichaTurno(cuadrox, cuadroy):
+					# el mouse esta sobre un cuadro seleccionable
+					grafico.dibujarCuadroIluminado(cuadrox, cuadroy)
+				elif tablero.sobreCaminoActual(cuadrox, cuadroy) and seleccion:
+					# el mouse esta sobre un cuadro del camino de la ficha
+					grafico.dibujarCuadroIluminado(cuadrox, cuadroy, fichaSeleccion)
+					# si esa posible jugada puede comer alguna ficha
+					if tablero.puedeComerFicha(fichaSeleccion[0], fichaSeleccion[1], cuadrox, cuadroy):
+						grafico.dibujarAlerta(tablero.getListaComerFicha(cuadrox, cuadroy), "roja")
+					
+			elif cuadrox != None and cuadroy != None and mouseClic:			
+				if tablero.hayFichaTurno(cuadrox, cuadroy):
+					# mouse hizo clic sobre alguna ficha de turno
+					tablero.setCamino(cuadrox, cuadroy)
+					grafico.dibujarCaminoIluminado(cuadrox, cuadroy)
+					seleccion = True
+					fichaSeleccion = (cuadrox, cuadroy)
+					
+				elif tablero.estaEnCamino(cuadrox, cuadroy) and seleccion:
+					# mouse hizo clic en una posicion del camino
+					tablero.mover(fichaSeleccion[0], fichaSeleccion[1], cuadrox, cuadroy)
+					seleccion = False			
+					evento = pygame.event.Event(pygame.USEREVENT+config["CAMBIO_TURNO"])
+					pygame.event.post(evento)
+			tablero.comprobarEstado()
 			
 			pygame.display.update()	
 			FPSCLOCK.tick(114)	
 	
-	
-	""" Animaciones para el fin del juego 
-	def finJuego(self, ganador):
-		self.grafico.dibujarVentana()
-		pygame.display.update()
-		pygame.time.wait(5000)
-		self.logico.resetearTablero()
-		self.seleccion = False
-		self.jaque = False
-		self.jaqueMate = False
-		self.peligro = False
-		self.fichaSeleccion = ""
-		self.jugador.nuevoJuego()"""
+		
 		
 	
 ################################################ Grafico ##################################################
@@ -336,8 +332,8 @@ class Grafico:
 	
 	
 	""" Dibuja todos los textos de la pantalla. """
-	def dibujarMensaje(self, t, j):
-		color = config["COLOR_TEXTO"]
+	def dibujarMensaje(self, t, j, c):
+		color = c
 		texto = t
 		
 		coordX = self.MARGEN_X + self.LARGO_CUADRO + int((self.ANCHO_CUADRO - int(self.ANCHO_CUADRO * 0.50)) / 2)
@@ -352,9 +348,16 @@ class Grafico:
 		pygame.draw.rect(self.SUPERFICIE, config["COLOR_MARGEN"], (0, self.ANCHO_CUADRO, (self.LARGO_VENTANA + 2*self.MARGEN_X), (self.ANCHO_VENTANA + 2*self.MARGEN_X)), 0)
 		
 		self.dibujarPanel()
-		j = self.jugador.getJugador()
-		turno = "Jugador 1, tu turno." if j == Jugador.jugador1 else "Jugador 2, tu turno"
-		self.dibujarMensaje(turno, j)
+		
+		if self.jugador.hayGanador():
+			j = self.jugador.getGanador()
+			texto = "Jugador 1, ganaste." if j == Jugador.jugador1 else "Jugador 2, ganaste."
+			color = config["COLOR_ALERTA_VERDE"]
+		else:
+			j = self.jugador.getJugador()
+			texto = "Jugador 1, tu turno." if j == Jugador.jugador1 else "Jugador 2, tu turno"
+			color = config["COLOR_TEXTO"]
+		self.dibujarMensaje(texto, j, color)
 		self.dibujarCuadros()
 		self.dibujarFichas()
 
@@ -373,9 +376,14 @@ class Tablero(object):
 	"""
 	def __init__(self, jugador):
 		self.jugador = jugador
-		blanca = config["BLANCA"]
-		negra = config["NEGRA"]
+		self.generarTablero()
+		
+		
+	def generarTablero(self):
+		blanca = copy(config["BLANCA"])
+		negra = copy(config["NEGRA"])
 		centro = (config["TAMANO"]-1)/2
+		self.tablero = []
 		for i in range(config["TAMANO"]):
 			fila = []
 			for j in range(config["TAMANO"]):
@@ -402,8 +410,8 @@ class Tablero(object):
 					fila[len(fila)-1].der = ficha
 				fila.append(ficha)
 			self.tablero.append(fila)
+			
 		
-	
 	def getTipoFicha(self, x, y):
 		return type(self.tablero[x][y])
 		
@@ -476,14 +484,14 @@ class Tablero(object):
 		if restricciones.count(rey.getCoord()):
 			evento = pygame.event.Event(pygame.USEREVENT+config["GAME_OVER"])
 			pygame.event.post(evento)
-			jugador.setGanador(Jugador.jugador2)
+			self.jugador.setGanador(Jugador.jugador2)
 		else:
 			# buscar cuantos lados del rey estan asediados por fichas enemigas
 			caminosLibresRey = rey.getCaminosLibres()
 			if len(caminosLibresRey) == 0:
 				evento = pygame.event.Event(pygame.USEREVENT+config["GAME_OVER"])
 				pygame.event.post(evento)
-				jugador.setGanador(Jugador.jugador1)
+				self.jugador.setGanador(Jugador.jugador1)
 			else:
 				if len(caminosLibresRey) == 1:
 					# comprobar si el rey esta a punto de perder
@@ -778,6 +786,7 @@ class Jugador(object):
 	fichasComidas1 = 0
 	fichasComidas2 = 0
 	jugadorActual = None
+	jugadorGanador = None
 	
 	""" Constructor de la clase. """
 	def __init__(self):
@@ -801,9 +810,21 @@ class Jugador(object):
 		return self.jugadorActual == jugador
 		
 		
+	def hayGanador(self):
+		return self.jugadorGanador
+		
+		
+	def	setGanador(self, ganador):
+		self.jugadorGanador = ganador
+		
+		
+	def getGanador(self):
+		return self.jugadorGanador
+	
 	""" Pone el turno por defecto. """
 	def nuevoJuego(self):
 		self.jugadorActual = self.jugador1
+		self.jugadorGanador = None
 		
 		
 	def getFichasComidas(self, j):
