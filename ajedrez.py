@@ -24,6 +24,7 @@ class Main:
 		
 		# boolean para controlar estado de ficha seleccionada.
 		seleccion = False
+		reyPeligro = False
 			
 		# sirve para almacenar la posicion de la ficha seleccionada por el clic
 		fichaSeleccion = ""
@@ -40,15 +41,8 @@ class Main:
 			# dibujar ventana.
 			grafico.dibujarVentana()
 			if seleccion:
-				grafico.dibujarCaminoIluminado(None, None)
-			"""# TODO
-			if self.jaque or self.jaqueMate:
-				self.grafico.dibujarAlerta(self.calculos.getEsquinas(), "verde")
-			if self.peligro:
-				self.grafico.dibujarAlerta(self.calculos.getPeligroRey(), "roja")
-			if self.seleccion:
-				self.grafico.dibujarCaminoIluminado(None, None)
-			"""	
+				grafico.dibujarCaminoIluminado()
+			
 			# manejo de eventos.
 			for evento in pygame.event.get():
 				if evento.type == QUIT or (evento.type == KEYUP and evento.key == K_ESCAPE):
@@ -65,9 +59,10 @@ class Main:
 					elif evento.type == pygame.USEREVENT+config["CAMBIO_TURNO"]:
 						jugador.cambioTurno()
 					elif evento.type == pygame.USEREVENT+config["REY_PELIGRO"]:
-						print "lol"
 						grafico.dibujarAlerta(evento.dict["alerta"], "roja")
-			
+					elif evento.type == pygame.USEREVENT+config["JAQUE"]:
+						grafico.dibujarAlerta(evento.dict["alerta"], "verde")
+						
 			if not gameOver:
 				# comprobar si el mouse esta actualmente en un cuadro
 				cuadrox, cuadroy = grafico.getCuadroPixel(mousex, mousey)					
@@ -97,7 +92,7 @@ class Main:
 						seleccion = False			
 						evento = pygame.event.Event(pygame.USEREVENT+config["CAMBIO_TURNO"])
 						pygame.event.post(evento)
-						tablero.comprobarEstado()
+				tablero.comprobarEstado()
 			
 			pygame.display.update()	
 			FPSCLOCK.tick(114)	
@@ -282,7 +277,7 @@ class Grafico:
 		
 	""" Dibuja el camino iluminado de la ficha seleccionada. 
 	"""	
-	def dibujarCaminoIluminado(self, cuadrox, cuadroy):
+	def dibujarCaminoIluminado(self, cuadrox = None, cuadroy = None):
 		camino = self.tablero.getCamino()
 		if cuadrox != None and cuadroy != None: 
 			self.dibujarCuadroIluminado(cuadrox, cuadroy)
@@ -377,7 +372,6 @@ class Tablero(object):
 	""" Crea las fichas del tablero de juego 
 	"""
 	def __init__(self, jugador):
-		self.rey = None
 		self.jugador = jugador
 		blanca = config["BLANCA"]
 		negra = config["NEGRA"]
@@ -466,26 +460,16 @@ class Tablero(object):
 				
 				
 	def mover(self, ox, oy, dx, dy):
-		aux = deepcopy(self.tablero[ox][oy])
-		self.tablero[ox][oy] = self.tablero[dx][dy]
-		self.tablero[dx][dy] = aux
+		self.tablero[ox][oy], self.tablero[dx][dy] = self.tablero[dx][dy], self.tablero[ox][oy]
 		self.reacomodarPunteros()
 		if self.tablero[dx][dy].comer(self.tablero[dx][dy]) != []:
 			self.comerFichas(self.tablero[dx][dy].getListaComer())
 			self.reacomodarPunteros()		
-		
-		
-	def buscarRey(self):
-		tablero = self.tablero
-		for fila in tablero:
-			for ficha in fila:
-				if type(ficha) == Rey:
-					return ficha
 					
 					
 	def comprobarEstado(self):
 		# primero comprobar si el rey ya ha llegado a una esquina
-		rey = self.buscarRey()
+		rey = self.rey
 		fin = config["TAMANO"]-1
 		restricciones = ((0,0), (fin, 0), (0, fin), (fin, fin))
 		
@@ -517,10 +501,16 @@ class Tablero(object):
 						evento = pygame.event.Event(pygame.USEREVENT+config["REY_PELIGRO"], {"alerta":fichasPeligro})
 						pygame.event.post(evento)
 						
-					
-					
-	def esquinasRey(self):
-		self.buscarRey().buscarEsquinas()
+				esquinasAccesiblesRey = rey.buscarEsquinas(caminosLibresRey)
+				if esquinasAccesiblesRey > 0:
+					evento = pygame.event.Event(pygame.USEREVENT+config["JAQUE"], {"alerta":esquinasAccesiblesRey})
+					pygame.event.post(evento)
+				
+				
+	def getFichasPeligroRey(self):
+		return self.buscarRey().getFichasPeligro()
+		
+
 
 
 ################################################# Ficha ###################################################
@@ -746,8 +736,37 @@ class Rey(Blanca):
 			sigDer = None if (der == None or type(der) != Ficha) else der.getPuntero(pD)
 			self.buscarPeligro(fichasPeligro, sigFre, sigIzq, sigDer, pF,pI, pD)			
 	
-		
 	
+	def buscarEsquinas(self, caminosLibres):
+		esquinasAccesibles = []
+		fin = config["TAMANO"]-1
+		esquinas = ((0,0), (fin, 0), (0, fin), (fin, fin))
+		for camino in caminosLibres:
+			if camino == config["ARR"]:
+				tmp = self.arr
+				while tmp.arr != None and type(tmp) == Ficha:
+					tmp = tmp.arr
+				if esquinas.count(tmp.getCoord()) == 1:
+					esquinasAccesibles.append(tmp.getCoord())
+			elif camino == config["ABA"]:
+				tmp = self.aba
+				while tmp.aba != None and type(tmp) == Ficha:
+					tmp = tmp.aba
+				if esquinas.count(tmp.getCoord()) == 1:
+					esquinasAccesibles.append(tmp.getCoord())
+			elif camino == config["IZQ"]:
+				tmp = self.izq
+				while tmp.izq != None and type(tmp) == Ficha:
+					tmp = tmp.izq
+				if esquinas.count(tmp.getCoord()) == 1:
+					esquinasAccesibles.append(tmp.getCoord())
+			elif camino == config["DER"]:
+				tmp = self.der
+				while tmp.der != None and type(tmp) == Ficha:
+					tmp = tmp.der
+				if esquinas.count(tmp.getCoord()) == 1:
+					esquinasAccesibles.append(tmp.getCoord())
+		return esquinasAccesibles
 		
 
 ################################################ Jugador ##################################################
@@ -791,8 +810,6 @@ class Jugador(object):
 		return self.fichasComidas1 if j == 1 else self.fichasComidas2
 	
 	
-	
-		
 if __name__ == '__main__':
 	config = {}
 	execfile("settings.config", config) 
